@@ -223,7 +223,6 @@ const bucketStats = BUCKETS.map(b => {
 });
 
 const SERIES = {
-  capeYield:{label:'CAPE Yield',color:'#E8964A',field:'capeYield',active:true},
   gs10:{label:'10Y Treasury',color:'#8A6AE8',field:'gs10',active:false},
   earningsYield:{label:'Earnings Yield (trailing)',color:'#4AE89D',field:'earningsYield',active:false},
 };
@@ -235,19 +234,26 @@ function getMainHeight() { return Math.min(480,Math.max(320,window.innerHeight*0
 
 // ===== METRICS =====
 function renderMetrics() {
-  const lat = data[data.length-1];
-  const cyM = d3.median(data.filter(d=>d.capeYield!=null).map(d=>d.capeYield));
+  let filtered = data;
+  if (brushExtent) filtered = data.filter(d=>d.date>=brushExtent[0]&&d.date<=brushExtent[1]);
+  const cyFiltered = filtered.filter(d=>d.capeYield!=null);
+  if (!cyFiltered.length) return;
+  const lat = cyFiltered[cyFiltered.length-1];
+  const cyVals = cyFiltered.map(d=>d.capeYield);
+  const cyM = d3.median(cyVals);
+  const pctRank = cyVals.filter(y=>y>=lat.capeYield).length/cyVals.length;
   document.getElementById('metrics-bar').innerHTML = `
-    <div class="metric-card"><div class="metric-label">Current CAPE Yield</div><div class="metric-value" style="color:var(--accent-cape)">${formatPct(lat.capeYield)}<span class="unit">%</span></div><div class="metric-subtext">Median since 1881: ${formatPct(cyM)}%</div></div>
-    <div class="metric-card"><div class="metric-label">10Y Treasury</div><div class="metric-value" style="color:var(--accent-rate)">${formatPct(lat.gs10)}<span class="unit">%</span></div><div class="metric-subtext">Long interest rate</div></div>
-    <div class="metric-card"><div class="metric-label">Earnings Yield</div><div class="metric-value" style="color:var(--accent-yield)">${lat.earningsYield?formatPct(lat.earningsYield):'—'}<span class="unit">%</span></div><div class="metric-subtext">E/P trailing 12m</div></div>`;
+    <div class="metric-card"><div class="metric-label">Latest CAPE Yield</div><div class="metric-value" style="color:var(--accent-cape)">${formatPct(lat.capeYield)}<span class="unit">%</span></div><div class="metric-subtext">${formatDate(lat.date)}</div></div>
+    <div class="metric-card"><div class="metric-label">Period Median</div><div class="metric-value">${formatPct(cyM)}<span class="unit">%</span></div><div class="metric-subtext">Mean: ${formatPct(d3.mean(cyVals))}%</div></div>
+    <div class="metric-card"><div class="metric-label">Percentile</div><div class="metric-value">${Math.round(pctRank*100)}<span class="unit">th</span></div><div class="metric-subtext">${pctRank<0.3?'Cheap':''}${pctRank>=0.3&&pctRank<0.7?'Mid-range':''}${pctRank>=0.7?'Expensive':''} vs selected period</div></div>
+    <div class="metric-card"><div class="metric-label">Selected Span</div><div class="metric-value" style="font-size:1.1rem">${cyVals.length}<span class="unit"> months</span></div><div class="metric-subtext">${formatDate(cyFiltered[0].date)} – ${formatDate(lat.date)}</div></div>`;
 }
 
 // ===== CONTROLS =====
 function renderControls() {
   const t = document.getElementById('series-toggles');
   t.innerHTML = Object.entries(SERIES).map(([k,s])=>`<button class="series-btn ${s.active?'active':''}" data-series="${k}"><span class="series-dot" style="background:${s.color}${s.active?'':'44'}"></span>${s.label}</button>`).join('');
-  t.querySelectorAll('.series-btn').forEach(btn=>{btn.addEventListener('click',()=>{SERIES[btn.dataset.series].active=!SERIES[btn.dataset.series].active;renderControls();renderMain();renderBrush();});});
+  t.querySelectorAll('.series-btn').forEach(btn=>{btn.addEventListener('click',()=>{SERIES[btn.dataset.series].active=!SERIES[btn.dataset.series].active;renderControls();renderMain();});});
 }
 
 // ===== BUCKET STATUS =====
@@ -267,12 +273,14 @@ function renderMain() {
   const g=svg.append('g').attr('transform',`translate(${margin.left},${margin.top})`);
   const xScale=d3.scaleTime().domain(d3.extent(filtered,d=>d.date)).range([0,w]);
   const active=Object.values(SERIES).filter(s=>s.active);
-  let yMax=22; if(active.length){const v=active.flatMap(s=>filtered.map(d=>d[s.field]).filter(v=>v!=null));if(v.length)yMax=d3.max(v)*1.1;}
+  const cyVals=filtered.map(d=>d.capeYield).filter(v=>v!=null);
+  const allVals=[...cyVals, ...active.flatMap(s=>filtered.map(d=>d[s.field]).filter(v=>v!=null))];
+  let yMax=allVals.length?d3.max(allVals)*1.1:22;
   const yScale=d3.scaleLinear().domain([0,yMax]).range([h,0]).nice();
   yScale.ticks(6).forEach(t=>g.append('line').attr('class','grid-line').attr('x1',0).attr('x2',w).attr('y1',yScale(t)).attr('y2',yScale(t)));
   recessions.forEach(([s,e])=>{const x0=xScale(d3.max([s,xScale.domain()[0]])),x1=xScale(d3.min([e,xScale.domain()[1]]));if(x1>x0&&s<=xScale.domain()[1]&&e>=xScale.domain()[0])g.append('rect').attr('class','recession-bar').attr('x',x0).attr('width',x1-x0).attr('y',0).attr('height',h);});
-  // Yield range band from Chart 3 sliders
-  if(SERIES.capeYield.active){
+  // Yield range band from Chart 3 sliders (CAPE yield always on)
+  {
     const ylo=hYield-hWindow, yhi=hYield+hWindow;
     const bandTop=yScale(Math.min(yhi,yScale.domain()[1])), bandBot=yScale(Math.max(ylo,0));
     if(bandBot>bandTop){
@@ -296,10 +304,14 @@ function renderMain() {
     });
     const m=d3.mean(filtered.filter(d=>d.capeYield!=null).map(d=>d.capeYield));g.append('line').attr('class','cape-mean').attr('x1',0).attr('x2',w).attr('y1',yScale(m)).attr('y2',yScale(m));g.append('text').attr('class','annotation-text').attr('x',w-4).attr('y',yScale(m)-6).attr('text-anchor','end').text(`Mean: ${formatPct(m)}%`);
   }
-  Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const ld=filtered.filter(d=>d[s.field]!=null);const line=d3.line().x(d=>xScale(d.date)).y(d=>yScale(d[s.field])).curve(d3.curveMonotoneX).defined(d=>d[s.field]!=null);g.append('path').datum(ld).attr('d',line).attr('fill','none').attr('stroke',s.color).attr('stroke-width',k==='capeYield'?1.8:1.3);});
+  // CAPE yield line (always on)
+  const cyLine=d3.line().x(d=>xScale(d.date)).y(d=>yScale(d.capeYield)).curve(d3.curveMonotoneX).defined(d=>d.capeYield!=null);
+  g.append('path').datum(filtered.filter(d=>d.capeYield!=null)).attr('d',cyLine).attr('fill','none').attr('stroke','#E8964A').attr('stroke-width',1.8);
+  // Optional overlay series
+  Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const ld=filtered.filter(d=>d[s.field]!=null);const line=d3.line().x(d=>xScale(d.date)).y(d=>yScale(d[s.field])).curve(d3.curveMonotoneX).defined(d=>d[s.field]!=null);g.append('path').datum(ld).attr('d',line).attr('fill','none').attr('stroke',s.color).attr('stroke-width',1.3);});
   g.append('g').attr('class','axis-x').attr('transform',`translate(0,${h})`).call(d3.axisBottom(xScale).ticks(d3.timeYear.every(Math.max(1,Math.round(filtered.length/120)))).tickSize(-h).tickPadding(8));
   g.append('g').attr('class','axis-y-left').call(d3.axisLeft(yScale).ticks(6).tickSize(0).tickPadding(8).tickFormat(d=>d+'%'));
-  g.append('text').attr('class','axis-label').attr('transform','rotate(-90)').attr('x',-h/2).attr('y',-40).attr('text-anchor','middle').style('fill','var(--accent-cape)').text(active.map(s=>s.label).join(' / '));
+  g.append('text').attr('class','axis-label').attr('transform','rotate(-90)').attr('x',-h/2).attr('y',-40).attr('text-anchor','middle').style('fill','var(--accent-cape)').text(['CAPE Yield',...active.map(s=>s.label)].join(' / '));
   [{date:'1929-09-01',label:'1929 Crash'},{date:'2000-03-01',label:'Dot-com'},{date:'2008-10-01',label:'GFC'},{date:'2020-03-01',label:'COVID'}].forEach(a=>{const d=parseDate(a.date);if(d>=xScale.domain()[0]&&d<=xScale.domain()[1]){const x=xScale(d);g.append('line').attr('class','annotation-line').attr('x1',x).attr('x2',x).attr('y1',0).attr('y2',h);g.append('text').attr('class','annotation-text').attr('x',x+4).attr('y',14).text(a.label);}});
 
   const cl=g.append('line').attr('class','crosshair-line').attr('y1',0).attr('y2',h).style('display','none');
@@ -308,8 +320,12 @@ function renderMain() {
     .on('mousemove',function(ev){
       const[mx]=d3.pointer(ev);const x0=xScale.invert(mx);const i=bis(filtered,x0,1);const d0=filtered[i-1],d1=filtered[i];if(!d0||!d1)return;const d=x0-d0.date>d1.date-x0?d1:d0;const px=xScale(d.date);
       cl.attr('x1',px).attr('x2',px).style('display',null);
-      cd.selectAll('*').remove();Object.entries(SERIES).forEach(([k,s])=>{if(!s.active||d[s.field]==null)return;cd.append('circle').attr('cx',px).attr('cy',yScale(d[s.field])).attr('r',4).attr('fill',s.color).attr('stroke','var(--bg)').attr('stroke-width',2);});
-      let rows='';Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=d[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'—'}</span></div>`;});
+      cd.selectAll('*').remove();
+      if(d.capeYield!=null) cd.append('circle').attr('cx',px).attr('cy',yScale(d.capeYield)).attr('r',4).attr('fill','#E8964A').attr('stroke','var(--bg)').attr('stroke-width',2);
+      Object.entries(SERIES).forEach(([k,s])=>{if(!s.active||d[s.field]==null)return;cd.append('circle').attr('cx',px).attr('cy',yScale(d[s.field])).attr('r',4).attr('fill',s.color).attr('stroke','var(--bg)').attr('stroke-width',2);});
+      let rows='';
+      if(d.capeYield!=null) rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:#E8964A"></span>CAPE Yield</span><span class="tooltip-val" style="color:#E8964A">${formatPct(d.capeYield)}%</span></div>`;
+      Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=d[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'—'}</span></div>`;});
       if(d.fwdReturn!=null){const rc=d.fwdReturn>=0?'var(--accent-return-pos)':'var(--accent-return-neg)';rows+=`<div class="tooltip-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span class="tooltip-label"><span class="tooltip-dot" style="background:${rc}"></span>10yr Fwd Return</span><span class="tooltip-val" style="color:${rc}">${formatDec(d.fwdReturn)}%</span></div>`;}
       tt.innerHTML=`<div class="tooltip-date">${formatDate(d.date)}</div>${rows}`;tt.classList.add('visible');
       let tx=px+margin.left+16;if(tx+250>mainEl.clientWidth-10)tx=px+margin.left-266;tt.style.left=tx+'px';tt.style.top='40px';
@@ -325,7 +341,7 @@ function renderBrush() {
   g.append('path').datum(cyD).attr('d',d3.area().x(d=>xS(d.date)).y0(h).y1(d=>yS(d.capeYield)).curve(d3.curveMonotoneX)).attr('fill','rgba(232,150,74,0.15)').attr('stroke','rgba(232,150,74,0.3)').attr('stroke-width',1);
   g.append('g').attr('class','axis-x').attr('transform',`translate(0,${h})`).call(d3.axisBottom(xS).ticks(10).tickSize(0).tickPadding(6));
   g.append('text').attr('class','context-label').attr('x',0).attr('y',-2).text('DRAG TO ZOOM');
-  const brush=d3.brushX().extent([[0,0],[w,h]]).on('brush end',function(ev){brushExtent=ev.selection?ev.selection.map(xS.invert):null;renderMain();});
+  const brush=d3.brushX().extent([[0,0],[w,h]]).on('brush end',function(ev){brushExtent=ev.selection?ev.selection.map(xS.invert):null;renderMain();renderMetrics();});
   const bG=g.append('g').attr('class','brush').call(brush);const ago=new Date(data[data.length-1].date);ago.setFullYear(ago.getFullYear()-50);bG.call(brush.move,[xS(ago),xS(data[data.length-1].date)]);
 }
 
@@ -380,7 +396,7 @@ function updateReturnHighlight(datum) {
   if(datum.fwdReturn!=null){g.append('circle').attr('class','hl').attr('cx',xS(datum.capeYield)).attr('cy',yS(datum.fwdReturn)).attr('r',7).attr('fill','none').attr('stroke','#fff').attr('stroke-width',2);g.append('circle').attr('class','hl').attr('cx',xS(datum.capeYield)).attr('cy',yS(datum.fwdReturn)).attr('r',4).attr('fill','#fff');}
   g.append('line').attr('class','hl').attr('x1',xS(datum.capeYield)).attr('x2',xS(datum.capeYield)).attr('y1',0).attr('y2',340-retMargin.top-retMargin.bottom).attr('stroke','rgba(255,255,255,0.25)').attr('stroke-width',1).attr('stroke-dasharray','4,3');
   renderBucketStatus(bk);
-  if(bs&&bs.n>0){const rc=bs.median>=0?'var(--accent-return-pos)':'var(--accent-return-neg)';co.innerHTML=`<div class="callout-title">${formatDate(datum.date)} — Yield ${formatPct(datum.capeYield)}%</div><div class="callout-main" style="color:${rc}">Bucket median: ${formatDec(bs.median)}% p.a.</div><div class="callout-detail">Range: ${formatDec(bs.min)}% to ${formatDec(bs.max)}%<br>Mean: ${formatDec(bs.mean)}% · IQR: ${formatDec(bs.p25)}% to ${formatDec(bs.p75)}%<br>${datum.fwdReturn!=null?`<strong style="color:var(--text-primary)">Actual 10yr: ${formatDec(datum.fwdReturn)}%</strong>`:'<em>10yr: not yet known</em>'}</div>`;co.classList.add('visible');}else{co.classList.remove('visible');}
+  if(bs&&bs.n>0){const bc=bk?bk.color:'var(--text-secondary)';co.innerHTML=`<div class="callout-title">${formatDate(datum.date)} — Yield ${formatPct(datum.capeYield)}%</div><div class="callout-main" style="color:${bc}">Bucket median: ${formatDec(bs.median)}% p.a.</div><div class="callout-detail">Range: ${formatDec(bs.min)}% to ${formatDec(bs.max)}%<br>Mean: ${formatDec(bs.mean)}% · IQR: ${formatDec(bs.p25)}% to ${formatDec(bs.p75)}%<br>${datum.fwdReturn!=null?`<strong style="color:var(--text-primary)">Actual 10yr: ${formatDec(datum.fwdReturn)}%</strong>`:'<em>10yr: not yet known</em>'}</div>`;co.classList.add('visible');}else{co.classList.remove('visible');}
 }
 
 // ===== HORIZON CHART =====
