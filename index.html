@@ -933,6 +933,7 @@ function renderHorizonChart() {
   const svg = d3.select('#horizon-chart').append('svg').attr('width', width).attr('height', hHeight);
   const g = svg.append('g').attr('transform', `translate(${hMargin.left},${hMargin.top})`);
 
+  // Compute stats per holding period
   const horizons = [];
   for (let yr = 1; yr <= 10; yr++) {
     const vals = matches.map(d => d.f[yr - 1]).filter(v => v != null).sort((a, b) => a - b);
@@ -940,87 +941,135 @@ function renderHorizonChart() {
     horizons.push({
       yr, n: vals.length,
       min: d3.min(vals), max: d3.max(vals),
-      p10: d3.quantile(vals, 0.1), p25: d3.quantile(vals, 0.25),
-      median: d3.median(vals), mean: d3.mean(vals),
-      p75: d3.quantile(vals, 0.75), p90: d3.quantile(vals, 0.9),
+      p25: d3.quantile(vals, 0.25), mean: d3.mean(vals),
+      p75: d3.quantile(vals, 0.75),
     });
   }
 
-  const xScale = d3.scaleBand().domain([1,2,3,4,5,6,7,8,9,10]).range([0, w]).padding(0.35);
+  const valid = horizons.filter(h => h);
+  if (!valid.length) {
+    g.append('text').attr('x', w/2).attr('y', h/2).attr('text-anchor', 'middle')
+      .attr('fill', 'var(--text-muted)').attr('font-size', '0.85rem').attr('font-style', 'italic')
+      .text('Not enough data for this yield range');
+    return;
+  }
 
-  const allVals = horizons.filter(h => h).flatMap(h => [h.min, h.max]);
-  const yAbs = Math.max(Math.abs(d3.min(allVals) || 0), Math.abs(d3.max(allVals) || 0)) * 1.1;
+  // Fixed y-axis: compute from ALL horizon data regardless of slider
+  const globalExtremes = [];
+  for (let yr = 0; yr < 10; yr++) {
+    const vals = HORIZON.map(d => d.f[yr]).filter(v => v != null);
+    globalExtremes.push(d3.min(vals), d3.max(vals));
+  }
+  const yAbs = Math.max(Math.abs(d3.min(globalExtremes)), Math.abs(d3.max(globalExtremes))) * 1.05;
   const yScale = d3.scaleLinear().domain([-yAbs, yAbs]).range([h, 0]).nice();
 
-  yScale.ticks(8).forEach(t => g.append('line').attr('class', 'grid-line').attr('x1', 0).attr('x2', w).attr('y1', yScale(t)).attr('y2', yScale(t)));
+  const xScale = d3.scaleLinear().domain([1, 10]).range([0, w]);
+
+  // Grid
+  yScale.ticks(8).forEach(t => g.append('line').attr('class', 'grid-line')
+    .attr('x1', 0).attr('x2', w).attr('y1', yScale(t)).attr('y2', yScale(t)));
   g.append('line').attr('x1', 0).attr('x2', w).attr('y1', yScale(0)).attr('y2', yScale(0))
-    .attr('stroke', 'rgba(255,255,255,0.2)').attr('stroke-width', 1);
+    .attr('stroke', 'var(--text-muted)').attr('stroke-width', 0.8).attr('opacity', 0.4);
 
-  const bw = xScale.bandwidth();
-  const tt = document.getElementById('h-tooltip');
+  // Area generators
+  const areaMinMax = d3.area()
+    .x(d => xScale(d.yr)).y0(d => yScale(d.min)).y1(d => yScale(d.max))
+    .curve(d3.curveMonotoneX);
+  const areaIQR = d3.area()
+    .x(d => xScale(d.yr)).y0(d => yScale(d.p25)).y1(d => yScale(d.p75))
+    .curve(d3.curveMonotoneX);
+  const lineMean = d3.line()
+    .x(d => xScale(d.yr)).y(d => yScale(d.mean))
+    .curve(d3.curveMonotoneX);
+  const lineMax = d3.line().x(d => xScale(d.yr)).y(d => yScale(d.max)).curve(d3.curveMonotoneX);
+  const lineMin = d3.line().x(d => xScale(d.yr)).y(d => yScale(d.min)).curve(d3.curveMonotoneX);
+  const lineP75 = d3.line().x(d => xScale(d.yr)).y(d => yScale(d.p75)).curve(d3.curveMonotoneX);
+  const lineP25 = d3.line().x(d => xScale(d.yr)).y(d => yScale(d.p25)).curve(d3.curveMonotoneX);
 
-  horizons.forEach(hz => {
-    if (!hz) return;
-    const cx = xScale(hz.yr) + bw / 2;
+  // Outer band: min–max (very faint)
+  g.append('path').datum(valid).attr('d', areaMinMax)
+    .attr('fill', 'var(--teal)').attr('opacity', 0.06);
 
-    g.append('line').attr('x1', cx).attr('x2', cx)
-      .attr('y1', yScale(hz.p90)).attr('y2', yScale(hz.p10))
-      .attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1.5).attr('opacity', 0.4);
+  // Inner band: p25–p75
+  g.append('path').datum(valid).attr('d', areaIQR)
+    .attr('fill', 'var(--teal)').attr('opacity', 0.15);
 
-    [hz.p10, hz.p90].forEach(v => {
-      g.append('line').attr('x1', cx - 6).attr('x2', cx + 6)
-        .attr('y1', yScale(v)).attr('y2', yScale(v))
-        .attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1.5).attr('opacity', 0.4);
+  // Outer lines: best/worst
+  g.append('path').datum(valid).attr('d', lineMax)
+    .attr('fill', 'none').attr('stroke', 'var(--teal)').attr('stroke-width', 1).attr('opacity', 0.35).attr('stroke-dasharray', '4,3');
+  g.append('path').datum(valid).attr('d', lineMin)
+    .attr('fill', 'none').attr('stroke', 'var(--teal)').attr('stroke-width', 1).attr('opacity', 0.35).attr('stroke-dasharray', '4,3');
+
+  // IQR lines: p25/p75
+  g.append('path').datum(valid).attr('d', lineP75)
+    .attr('fill', 'none').attr('stroke', 'var(--teal)').attr('stroke-width', 1.5).attr('opacity', 0.5);
+  g.append('path').datum(valid).attr('d', lineP25)
+    .attr('fill', 'none').attr('stroke', 'var(--teal)').attr('stroke-width', 1.5).attr('opacity', 0.5);
+
+  // Mean line: prominent
+  g.append('path').datum(valid).attr('d', lineMean)
+    .attr('fill', 'none').attr('stroke', 'var(--teal)').attr('stroke-width', 2.5);
+
+  // Dots on mean line
+  valid.forEach(hz => {
+    g.append('circle').attr('cx', xScale(hz.yr)).attr('cy', yScale(hz.mean)).attr('r', 4)
+      .attr('fill', 'var(--teal)').attr('stroke', 'var(--bg-panel)').attr('stroke-width', 1.5);
+  });
+
+  // End labels (right side)
+  const last = valid[valid.length - 1];
+  if (last) {
+    const labels = [
+      { val: last.max, text: `Best: ${formatDec(last.max)}%`, opacity: 0.5 },
+      { val: last.p75, text: `75th: ${formatDec(last.p75)}%`, opacity: 0.7 },
+      { val: last.mean, text: `Mean: ${formatDec(last.mean)}%`, opacity: 1, bold: true },
+      { val: last.p25, text: `25th: ${formatDec(last.p25)}%`, opacity: 0.7 },
+      { val: last.min, text: `Worst: ${formatDec(last.min)}%`, opacity: 0.5 },
+    ];
+    labels.forEach(l => {
+      g.append('text').attr('x', w + 6).attr('y', yScale(l.val) + 3.5)
+        .attr('font-family', 'JetBrains Mono, monospace')
+        .attr('font-size', '8px').attr('font-weight', l.bold ? '600' : '400')
+        .attr('fill', 'var(--teal)').attr('opacity', l.opacity)
+        .text(l.text);
     });
+  }
 
-    const boxTop = yScale(hz.p75), boxBot = yScale(hz.p25);
+  // Tooltip: invisible hover columns per year
+  const tt = document.getElementById('h-tooltip');
+  const colW = w / 10;
+
+  valid.forEach(hz => {
     g.append('rect')
-      .attr('x', xScale(hz.yr)).attr('width', bw)
-      .attr('y', boxTop).attr('height', boxBot - boxTop)
-      .attr('fill', 'var(--accent-cape)').attr('opacity', 0.15)
-      .attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1).attr('stroke-opacity', 0.5)
-      .attr('rx', 3);
-
-    g.append('line')
-      .attr('x1', xScale(hz.yr) + 2).attr('x2', xScale(hz.yr) + bw - 2)
-      .attr('y1', yScale(hz.median)).attr('y2', yScale(hz.median))
-      .attr('stroke', '#fff').attr('stroke-width', 2.5).attr('stroke-linecap', 'round');
-
-    g.append('circle')
-      .attr('cx', cx).attr('cy', yScale(hz.mean)).attr('r', 4)
-      .attr('fill', 'var(--accent-cape)').attr('stroke', 'var(--bg)').attr('stroke-width', 1.5);
-
-    g.append('rect')
-      .attr('x', xScale(hz.yr) - 2).attr('width', bw + 4)
+      .attr('x', xScale(hz.yr) - colW / 2).attr('width', colW)
       .attr('y', 0).attr('height', h)
       .attr('fill', 'transparent').attr('cursor', 'pointer')
       .on('mouseenter', function() {
-        const mc = hz.median >= 0 ? 'var(--teal)' : 'var(--accent-return-neg)';
         const mnc = hz.mean >= 0 ? 'var(--teal)' : 'var(--accent-return-neg)';
         let html = `<div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;padding-bottom:0.4rem;border-bottom:1px solid var(--border)">${hz.yr}-Year Holding Period</div>`;
         html += `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.2rem 0"><span style="font-size:0.78rem;color:var(--text-secondary)">Mean</span><span style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:500;color:${mnc}">${formatDec(hz.mean)}%</span></div>`;
-        html += `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:0.2rem 0"><span style="font-size:0.78rem;color:var(--text-secondary)">Median</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:${mc}">${formatDec(hz.median)}%</span></div>`;
         html += `<div style="border-top:1px solid var(--border);margin-top:0.3rem;padding-top:0.3rem">`;
-        html += `<div style="display:flex;justify-content:space-between;padding:0.1rem 0"><span style="font-size:0.72rem;color:var(--text-muted)">IQR</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-muted)">${formatDec(hz.p25)}% to ${formatDec(hz.p75)}%</span></div>`;
-        html += `<div style="display:flex;justify-content:space-between;padding:0.1rem 0"><span style="font-size:0.72rem;color:var(--text-muted)">90% range</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-muted)">${formatDec(hz.p10)}% to ${formatDec(hz.p90)}%</span></div>`;
-        html += `<div style="display:flex;justify-content:space-between;padding:0.1rem 0"><span style="font-size:0.72rem;color:var(--text-muted)">Full range</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-muted)">${formatDec(hz.min)}% to ${formatDec(hz.max)}%</span></div>`;
+        html += `<div style="display:flex;justify-content:space-between;padding:0.1rem 0"><span style="font-size:0.72rem;color:var(--text-muted)">Best</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-muted)">${formatDec(hz.max)}%</span></div>`;
+        html += `<div style="display:flex;justify-content:space-between;padding:0.1rem 0"><span style="font-size:0.72rem;color:var(--text-muted)">75th pctl</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-muted)">${formatDec(hz.p75)}%</span></div>`;
+        html += `<div style="display:flex;justify-content:space-between;padding:0.1rem 0"><span style="font-size:0.72rem;color:var(--text-muted)">25th pctl</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-muted)">${formatDec(hz.p25)}%</span></div>`;
+        html += `<div style="display:flex;justify-content:space-between;padding:0.1rem 0"><span style="font-size:0.72rem;color:var(--text-muted)">Worst</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-muted)">${formatDec(hz.min)}%</span></div>`;
         html += `<div style="display:flex;justify-content:space-between;padding:0.1rem 0"><span style="font-size:0.72rem;color:var(--text-muted)">Months</span><span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--text-muted)">${hz.n}</span></div>`;
         html += `</div>`;
         tt.innerHTML = html;
         tt.classList.add('visible');
         const rect = hEl.getBoundingClientRect();
-        let tx = xScale(hz.yr) + hMargin.left + bw + 12;
-        if (tx + 200 > rect.width) tx = xScale(hz.yr) + hMargin.left - 200;
+        let tx = xScale(hz.yr) + hMargin.left + 16;
+        if (tx + 210 > rect.width) tx = xScale(hz.yr) + hMargin.left - 220;
         tt.style.left = tx + 'px';
         tt.style.top = '30px';
       })
       .on('mouseleave', function() { tt.classList.remove('visible'); });
   });
 
+  // Axes
   g.append('g').attr('class', 'axis-x').attr('transform', `translate(0,${h})`)
-    .call(d3.axisBottom(xScale).tickSize(0).tickPadding(10).tickFormat(d => d + 'yr'))
-    .selectAll('text').style('fill', 'var(--text-secondary)').style('font-size', '12px');
-
+    .call(d3.axisBottom(xScale).ticks(10).tickSize(0).tickPadding(10).tickFormat(d => d + 'yr'))
+    .selectAll('text').style('fill', 'var(--text-muted)').style('font-family', 'JetBrains Mono,monospace').style('font-size', '10px');
   g.append('g').attr('class', 'axis-y-left')
     .call(d3.axisLeft(yScale).ticks(8).tickSize(0).tickPadding(8).tickFormat(d => d + '%'))
     .selectAll('text').style('fill', 'var(--text-secondary)');
@@ -1030,15 +1079,26 @@ function renderHorizonChart() {
   g.append('text').attr('class', 'axis-label').attr('transform', 'rotate(-90)').attr('x', -h / 2).attr('y', -40).attr('text-anchor', 'middle')
     .style('fill', 'var(--text-muted)').text('ANNUALISED REAL RETURN');
 
-  const lg = g.append('g').attr('transform', `translate(${w - 170}, 4)`);
-  lg.append('rect').attr('width', 14).attr('height', 10).attr('fill', 'var(--accent-cape)').attr('opacity', 0.15).attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1).attr('stroke-opacity', 0.5).attr('rx', 2);
-  lg.append('text').attr('x', 20).attr('y', 9).attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('25th\u201375th percentile');
-  lg.append('line').attr('x1', 0).attr('x2', 14).attr('y1', 22).attr('y2', 22).attr('stroke', '#fff').attr('stroke-width', 2.5).attr('stroke-linecap', 'round');
-  lg.append('text').attr('x', 20).attr('y', 26).attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('Median');
-  lg.append('circle').attr('cx', 7).attr('cy', 38).attr('r', 4).attr('fill', 'var(--accent-cape)');
-  lg.append('text').attr('x', 20).attr('y', 42).attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('Mean');
-  lg.append('line').attr('x1', 1).attr('x2', 13).attr('y1', 54).attr('y2', 54).attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1.5).attr('opacity', 0.4);
-  lg.append('text').attr('x', 20).attr('y', 58).attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('10th\u201390th percentile');
+  // Legend
+  const lg = svg.append('g').attr('transform', `translate(${hMargin.left + 8}, ${hMargin.top + 6})`);
+  lg.append('line').attr('x1', 0).attr('x2', 16).attr('y1', 0).attr('y2', 0)
+    .attr('stroke', 'var(--teal)').attr('stroke-width', 2.5);
+  lg.append('circle').attr('cx', 8).attr('cy', 0).attr('r', 3)
+    .attr('fill', 'var(--teal)').attr('stroke', 'var(--bg-panel)').attr('stroke-width', 1);
+  lg.append('text').attr('x', 22).attr('y', 3.5)
+    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('Mean');
+
+  lg.append('rect').attr('x', 0).attr('y', 12).attr('width', 16).attr('height', 8)
+    .attr('fill', 'var(--teal)').attr('opacity', 0.15).attr('rx', 1);
+  lg.append('text').attr('x', 22).attr('y', 22)
+    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('25th\u201375th percentile');
+
+  lg.append('rect').attr('x', 0).attr('y', 30).attr('width', 16).attr('height', 8)
+    .attr('fill', 'var(--teal)').attr('opacity', 0.06).attr('rx', 1);
+  lg.append('line').attr('x1', 0).attr('x2', 16).attr('y1', 34).attr('y2', 34)
+    .attr('stroke', 'var(--teal)').attr('stroke-width', 1).attr('opacity', 0.35).attr('stroke-dasharray', '4,3');
+  lg.append('text').attr('x', 22).attr('y', 40)
+    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('Best / Worst');
 }
 
 // ===== INIT =====
