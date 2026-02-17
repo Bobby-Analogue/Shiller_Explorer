@@ -127,14 +127,10 @@ header .byline { font-size:0.75rem; color:var(--text-muted); margin-top:1.25rem;
 .horizon-summary .hs-n { color:var(--text-secondary); font-size:0.85rem; }
 
 .vintage-chart-container {
-  background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:1.25rem 0.5rem 0.5rem; margin-bottom:2rem; min-height:180px; position:relative;
-  max-height:620px; overflow-y:auto; overflow-x:hidden;
+  background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:1.25rem 0.5rem 0.5rem; margin-bottom:2rem; min-height:100px; position:relative; box-shadow:0 1px 4px rgba(15,38,64,0.05);
 }
-.vintage-chart-container::-webkit-scrollbar { width:6px; }
-.vintage-chart-container::-webkit-scrollbar-track { background:transparent; }
-.vintage-chart-container::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:3px; }
 .vintage-chart-container svg { display:block; }
-.vintage-empty { display:flex; align-items:center; justify-content:center; height:180px; color:var(--text-muted); font-style:italic; font-size:0.9rem; }
+.vintage-empty { display:flex; align-items:center; justify-content:center; height:140px; color:var(--text-muted); font-style:italic; font-size:0.9rem; }
 
 .horizon-chart-container {
   position:relative; background:var(--bg-panel); border-radius:10px;
@@ -739,10 +735,10 @@ function updateReratingHighlight(datum) {
 
 
 
-// ===== CHART 4: STACKED TILE HISTOGRAM =====
+
+// ===== CHART 4: HORIZONTAL TILE HISTOGRAM =====
 const fmtMY = d3.timeFormat('%b %Y');
 const fmtYr = d3.timeFormat('%Y');
-const fmtShort = d3.timeFormat("%b '%y");
 
 function renderVintageChart() {
   const el = document.getElementById('vintage-chart');
@@ -757,12 +753,11 @@ function renderVintageChart() {
 
   // Build 2% return buckets
   const bucketW = 2;
-  const minBucket = Math.floor(d3.min(all, d => d.fwdReturn) / bucketW) * bucketW;
-  const maxBucket = Math.floor(d3.max(all, d => d.fwdReturn) / bucketW) * bucketW;
+  const minB = Math.floor(d3.min(all, d => d.fwdReturn) / bucketW) * bucketW;
+  const maxB = Math.floor(d3.max(all, d => d.fwdReturn) / bucketW) * bucketW;
   const bucketKeys = [];
-  for (let b = minBucket; b <= maxBucket; b += bucketW) bucketKeys.push(b);
+  for (let b = maxB; b >= minB; b -= bucketW) bucketKeys.push(b); // top-to-bottom: high returns first
 
-  // Assign each month to a bucket and build stacks
   const stacks = {};
   bucketKeys.forEach(k => stacks[k] = []);
   all.forEach(d => {
@@ -770,131 +765,98 @@ function renderVintageChart() {
     if (stacks[b]) stacks[b].push(d);
   });
 
-  // Cell sizing
-  const cellW = 56, cellH = 16, cellPad = 1;
-  const marginLeft = 12, marginRight = 12, marginTop = 28, marginBottom = 52;
-  const colGap = 3;
+  // Cell sizing — small blocks, no text, visible gaps
+  const cellSize = 5, cellGap = 1;
+  const marginLeft = 70, marginRight = 16, marginTop = 24, marginBottom = 8;
+  const rowGap = 4;
 
-  const nCols = bucketKeys.length;
-  const totalW = marginLeft + nCols * (cellW + colGap) - colGap + marginRight;
+  const nRows = bucketKeys.length;
   const maxStack = d3.max(bucketKeys, k => stacks[k].length);
-  const totalH = marginTop + maxStack * (cellH + cellPad) + marginBottom;
 
-  const width = Math.max(totalW, el.clientWidth - 16);
-  const xOffset = Math.max(0, (width - totalW) / 2); // centre if container wider
+  const containerW = el.clientWidth - 16;
+  const availW = containerW - marginLeft - marginRight;
+  const totalH = marginTop + nRows * (cellSize + rowGap) - rowGap + marginBottom;
 
   const svg = d3.select(el).append('svg')
-    .attr('width', width).attr('height', totalH);
+    .attr('width', containerW).attr('height', totalH);
 
   // Summary annotation
   const matches = all.filter(d => d.capeYield >= ylo && d.capeYield < yhi);
-  const median = matches.length ? d3.median(matches, d => d.fwdReturn) : 0;
-  const mean = matches.length ? d3.mean(matches, d => d.fwdReturn) : 0;
-  svg.append('text').attr('x', width / 2).attr('y', 16).attr('text-anchor', 'middle')
+  const nMatch = matches.length;
+  const median = nMatch ? d3.median(matches, d => d.fwdReturn) : 0;
+  const mean = nMatch ? d3.mean(matches, d => d.fwdReturn) : 0;
+  svg.append('text').attr('x', containerW - marginRight).attr('y', 14).attr('text-anchor', 'end')
     .attr('font-family', 'JetBrains Mono, monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)')
-    .text(matches.length
-      ? `${matches.length} of ${all.length} months highlighted \u00b7 Median: ${formatDec(median)}% \u00b7 Mean: ${formatDec(mean)}%`
+    .text(nMatch
+      ? `${nMatch} of ${all.length} months highlighted \u00b7 Median: ${formatDec(median)}% \u00b7 Mean: ${formatDec(mean)}%`
       : 'No months with known outcomes in this range');
 
-  // Draw columns bottom-up (like reference image)
-  bucketKeys.forEach((bk, ci) => {
-    const colX = xOffset + marginLeft + ci * (cellW + colGap);
+  // Draw rows: each row = a return bucket, cells grow left-to-right
+  bucketKeys.forEach((bk, ri) => {
+    const rowY = marginTop + ri * (cellSize + rowGap);
     const stack = stacks[bk];
-    // Sort stack: put highlighted months at bottom for visibility
-    stack.sort((a, b) => {
-      const aActive = a.capeYield >= ylo && a.capeYield < yhi ? 1 : 0;
-      const bActive = b.capeYield >= ylo && b.capeYield < yhi ? 1 : 0;
-      if (aActive !== bActive) return bActive - aActive; // active first (bottom)
-      return a.date - b.date;
-    });
 
-    stack.forEach((d, ri) => {
-      const cellY = totalH - marginBottom - (ri + 1) * (cellH + cellPad);
-      const active = d.capeYield >= ylo && d.capeYield < yhi;
-
-      // Cell background
-      const bkt = getBucket(d.capeYield);
-      const activeCol = d.fwdReturn < 0 ? '#E86A6A' : (bkt ? bkt.color : '#888');
-      const fillCol = active ? activeCol : 'rgba(255,255,255,0.06)';
-      const opacity = active ? 0.85 : 0.5;
-      const textCol = active ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.18)';
-
-      const g = svg.append('g').attr('class', 'vtile')
-        .attr('transform', `translate(${colX},${cellY})`);
-
-      g.append('rect')
-        .attr('width', cellW).attr('height', cellH)
-        .attr('rx', 2)
-        .attr('fill', fillCol).attr('opacity', opacity);
-
-      // Label: "Jan '29"
-      const yr = d.date.getFullYear();
-      const mo = d3.timeFormat('%b')(d.date);
-      g.append('text')
-        .attr('x', cellW / 2).attr('y', cellH / 2 + 1)
-        .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
-        .attr('font-family', 'JetBrains Mono, monospace')
-        .attr('font-size', '7.5px').attr('font-weight', active ? '600' : '400')
-        .attr('fill', textCol)
-        .text(`${mo} '${String(yr).slice(2)}`);
-
-      // Store data ref for tooltip
-      g.datum(d);
-    });
-
-    // Bucket label at bottom
+    // Row label (return range)
     svg.append('text')
-      .attr('x', colX + cellW / 2)
-      .attr('y', totalH - marginBottom + 16)
-      .attr('text-anchor', 'middle')
+      .attr('x', marginLeft - 8).attr('y', rowY + cellSize / 2 + 1)
+      .attr('text-anchor', 'end').attr('dominant-baseline', 'middle')
       .attr('font-family', 'JetBrains Mono, monospace')
       .attr('font-size', '8px')
-      .attr('fill', 'var(--text-muted)')
-      .text(`${bk}%`);
-    svg.append('text')
-      .attr('x', colX + cellW / 2)
-      .attr('y', totalH - marginBottom + 26)
-      .attr('text-anchor', 'middle')
-      .attr('font-family', 'JetBrains Mono, monospace')
-      .attr('font-size', '7px')
-      .attr('fill', 'var(--text-muted)')
-      .attr('opacity', 0.6)
-      .text(`to ${bk + bucketW}%`);
+      .attr('fill', bk < 0 ? 'var(--accent-return-neg)' : 'var(--text-muted)')
+      .text(`${bk >= 0 ? '+' : ''}${bk}% to ${bk + bucketW}%`);
+
+    // Sort: chronological within each bucket
+    stack.sort((a, b) => a.date - b.date);
+
+    stack.forEach((d, ci) => {
+      const cellX = marginLeft + ci * (cellSize + cellGap);
+      const active = d.capeYield >= ylo && d.capeYield < yhi;
+
+      svg.append('rect')
+        .attr('class', 'vtile')
+        .attr('x', cellX).attr('y', rowY)
+        .attr('width', cellSize).attr('height', cellSize)
+        .attr('rx', 1)
+        .attr('fill', active ? 'var(--teal)' : 'rgba(15,38,64,0.08)')
+        .attr('opacity', active ? 0.9 : 1)
+        .datum(d);
+    });
   });
 
   // Tooltip
   const tt = document.createElement('div');
-  tt.style.cssText = 'position:absolute;background:rgba(12,14,18,0.95);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:0.6rem 0.8rem;font-size:0.78rem;z-index:50;opacity:0;transition:opacity 0.15s;pointer-events:none;white-space:nowrap;';
+  tt.style.cssText = 'position:absolute;background:rgba(255,255,255,0.97);border:1px solid rgba(15,38,64,0.12);border-radius:8px;padding:0.7rem 0.9rem;font-size:0.8rem;z-index:50;opacity:0;transition:opacity 0.15s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(15,38,64,0.1);color:var(--text-primary);';
   el.appendChild(tt);
 
-  svg.selectAll('.vtile').on('mouseover', function(ev, d) {
-    const g = d3.select(this);
-    g.select('rect').attr('stroke', '#fff').attr('stroke-width', 1.5).attr('opacity', 1);
-    const active = d.capeYield >= ylo && d.capeYield < yhi;
-    const col = d.fwdReturn < 0 ? '#E86A6A' : (getBucket(d.capeYield)?.color || '#888');
-    tt.innerHTML = `<div style="color:var(--text-muted);margin-bottom:4px">${fmtMY(d.date)}${active ? '' : ' <span style="opacity:0.5">(outside range)</span>'}</div><div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:${col}">${formatDec(d.fwdReturn)}% p.a.</div><div style="color:var(--text-muted);margin-top:2px">CAPE Yield: ${formatPct(d.capeYield)}%</div>`;
-    tt.style.opacity = '1';
-    const box = el.getBoundingClientRect();
-    const ttW = tt.offsetWidth || 160;
-    let left = ev.clientX - box.left + 12;
-    if (left + ttW > box.width - 8) left = ev.clientX - box.left - ttW - 12;
-    let top = ev.clientY - box.top - 40;
-    if (top < 4) top = ev.clientY - box.top + 20;
-    tt.style.left = left + 'px';
-    tt.style.top = top + 'px';
-  }).on('mouseleave', function(ev, d) {
-    const active = d.capeYield >= ylo && d.capeYield < yhi;
-    const bkt = getBucket(d.capeYield);
-    const activeCol = d.fwdReturn < 0 ? '#E86A6A' : (bkt ? bkt.color : '#888');
-    d3.select(this).select('rect')
-      .attr('fill', active ? activeCol : 'rgba(255,255,255,0.06)')
-      .attr('opacity', active ? 0.85 : 0.5)
-      .attr('stroke', 'none');
-    tt.style.opacity = '0';
-  });
+  svg.selectAll('.vtile')
+    .on('mouseover', function(ev, d) {
+      const active = d.capeYield >= ylo && d.capeYield < yhi;
+      d3.select(this)
+        .attr('fill', active ? 'var(--dark-navy)' : 'var(--teal)')
+        .attr('opacity', 1)
+        .attr('stroke', 'var(--dark-navy)').attr('stroke-width', 1);
 
-  // Scroll to bottom so the base of the histogram is visible
-  el.scrollTop = el.scrollHeight;
+      const col = d.fwdReturn < 0 ? 'var(--accent-return-neg)' : 'var(--teal)';
+      tt.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;padding-bottom:0.35rem;border-bottom:1px solid rgba(15,38,64,0.08)">${fmtMY(d.date)}${active ? '' : ' \u00b7 outside range'}</div><div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:500;color:${col}">${formatDec(d.fwdReturn)}% <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted)">p.a.</span></div><div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem">CAPE Yield: ${formatPct(d.capeYield)}%</div>`;
+      tt.style.opacity = '1';
+
+      const box = el.getBoundingClientRect();
+      const ttW = tt.offsetWidth || 180;
+      let left = ev.clientX - box.left + 14;
+      if (left + ttW > box.width - 8) left = ev.clientX - box.left - ttW - 14;
+      let top = ev.clientY - box.top - 50;
+      if (top < 4) top = ev.clientY - box.top + 16;
+      tt.style.left = left + 'px';
+      tt.style.top = top + 'px';
+    })
+    .on('mouseleave', function(ev, d) {
+      const active = d.capeYield >= ylo && d.capeYield < yhi;
+      d3.select(this)
+        .attr('fill', active ? 'var(--teal)' : 'rgba(15,38,64,0.08)')
+        .attr('opacity', active ? 0.9 : 1)
+        .attr('stroke', 'none');
+      tt.style.opacity = '0';
+    });
 }
 // ===== CHART 5: TIME TAMES UNCERTAINTY (HORIZON) =====
 let hYield = 5.0;
