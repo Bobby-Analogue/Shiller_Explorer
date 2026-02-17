@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shiller Market Explorer — Brickwood Asset Management</title>
+<title>Shiller Market Explorer â€” Brickwood Asset Management</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bellefair&family=Montserrat:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -94,11 +94,65 @@ header .byline { font-size:0.75rem; color:var(--text-muted); margin-top:1.25rem;
 .callout-main { font-family:'JetBrains Mono',monospace; font-size:1.4rem; font-weight:500; margin-bottom:0.15rem; }
 .callout-detail { font-size:0.75rem; color:var(--text-secondary); line-height:1.5; }
 
-/* ===== HORIZON CHART ===== */
-/* Charts 3 & 5 CSS moved to charts_3_and_5.html */
+/* ===== CHARTS 4 & 5: VINTAGE + HORIZON ===== */
+.horizon-controls {
+  display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;
+  background:var(--bg-panel); border:1px solid var(--border); border-radius:8px;
+  padding:1rem 1.3rem; margin-bottom:1rem;
+}
+.slider-group { display:flex; flex-direction:column; gap:0.3rem; flex:1; min-width:200px; }
+.slider-label { font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; }
+.slider-row { display:flex; align-items:center; gap:0.75rem; }
+.slider-row input[type=range] {
+  flex:1; -webkit-appearance:none; appearance:none; height:4px; border-radius:2px;
+  background:var(--border); outline:none; cursor:pointer;
+}
+.slider-row input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+  background:var(--accent-cape); cursor:pointer; border:2px solid var(--bg);
+  box-shadow:0 1px 4px rgba(0,0,0,0.4);
+}
+.slider-row input[type=range]::-moz-range-thumb {
+  width:16px; height:16px; border-radius:50%;
+  background:var(--accent-cape); cursor:pointer; border:2px solid var(--bg);
+}
+.slider-value {
+  font-family:'JetBrains Mono',monospace; font-size:1rem; font-weight:500;
+  color:var(--accent-cape); min-width:60px; text-align:right;
+}
+.horizon-summary {
+  font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:var(--text-muted);
+  padding:0.5rem 0; min-width:160px; text-align:right;
+}
+.horizon-summary .hs-n { color:var(--text-secondary); font-size:0.85rem; }
+
+.vintage-chart-container {
+  background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:1.25rem 0.5rem 0.5rem; margin-bottom:2rem; min-height:180px; position:relative;
+  max-height:620px; overflow-y:auto; overflow-x:hidden;
+}
+.vintage-chart-container::-webkit-scrollbar { width:6px; }
+.vintage-chart-container::-webkit-scrollbar-track { background:transparent; }
+.vintage-chart-container::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.15); border-radius:3px; }
+.vintage-chart-container svg { display:block; }
+.vintage-empty { display:flex; align-items:center; justify-content:center; height:180px; color:var(--text-muted); font-style:italic; font-size:0.9rem; }
+
+.horizon-chart-container {
+  position:relative; background:var(--bg-panel); border-radius:10px;
+  border:1px solid var(--border); padding:1.25rem 0.5rem 0.5rem; margin-bottom:1.5rem;
+}
+.horizon-chart-container svg { display:block; }
+
+.h-tooltip {
+  position:absolute; pointer-events:none; background:rgba(12,14,18,0.96);
+  border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:0.8rem 1rem;
+  font-size:0.8rem; backdrop-filter:blur(12px); z-index:100; min-width:180px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5); opacity:0; transition:opacity 0.15s;
+}
+.h-tooltip.visible { opacity:1; }
 .decomp-chart-container {
   background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:1.5rem; margin-bottom:2rem; min-height:220px; position:relative; box-shadow:0 1px 4px rgba(15,38,64,0.05);
 }
+.decomp-controls {
   display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;
 }
 .decomp-btn {
@@ -124,7 +178,7 @@ header .byline { font-size:0.75rem; color:var(--text-muted); margin-top:1.25rem;
 <div class="container">
   <header>
     <h1>The Importance of Valuation</h1>
-    <p class="subtitle">155 years of U.S. stock market valuations, measured by CAPE Yield — the cyclically adjusted real earnings per dollar invested.</p>
+    <p class="subtitle">155 years of U.S. stock market valuations, measured by CAPE Yield â€” the cyclically adjusted real earnings per dollar invested.</p>
     <p class="byline">Data: Prof. Robert J. Shiller, Yale University &mdash; Updated Monthly</p>
   </header>
 
@@ -138,8 +192,6 @@ header .byline { font-size:0.75rem; color:var(--text-muted); margin-top:1.25rem;
   <div class="bucket-status" id="bucket-status"></div>
   <div class="return-chart-container" id="return-chart"><div class="return-callout" id="return-callout"></div></div>
 
-  <!-- Chart 3 (vintage) moved to charts_3_and_5.html -->
-
   <div class="section-divider"><h2>Why CAPE Yield Works</h2><div class="line"></div></div>
   <p class="section-subtitle">Total return has two drivers: the return generated by the underlying business fundamentals and the change in valuation, which reflects how much investors are willing to pay for those fundamentals.
 Starting valuations matter because they influence the direction of valuation change. When markets begin at low valuations (high yields), the scope for a positive re-rating is greater. When they begin at high valuations (low yields), the risk of a negative de-rating increases.
@@ -148,13 +200,22 @@ By contrast, returns driven by underlying fundamentals tend to be more stable ov
   <div class="controls-row"><div class="series-toggles" id="rerating-toggles"></div></div>
   <div class="decomp-chart-container" id="rerating-chart"></div>
 
-  <!-- Chart 5 (horizon) moved to charts_3_and_5.html -->
+  <!-- Charts 4 & 5: Shared slider controls -->
+  <div class="section-divider"><h2>When Was It This Expensive?</h2><div class="line"></div></div>
+  <p class="section-subtitle">Every month since 1881 and its subsequent 10-year real return. Use the sliders to pick a starting valuation: matching months stay bright while the rest fade, so you can see exactly where your yield window sits in 155 years of history.</p>
+  <div class="horizon-controls" id="horizon-controls"></div>
+  <div class="vintage-chart-container" id="vintage-chart"></div>
+
+  <!-- Chart 5: Time Tames Uncertainty -->
+  <div class="section-divider"><h2>Time Tames Uncertainty</h2><div class="line"></div></div>
+  <p class="section-subtitle">Same starting valuation, different holding periods. Over one year, outcomes vary wildly. Over longer periods the range narrows as returns are increasingly shaped by fundamentals. Time helps convert uncertainty into probability.</p>
+  <div class="horizon-chart-container" id="horizon-chart"><div class="h-tooltip" id="h-tooltip"></div></div>
 
   <div class="chart-footer">
     <div class="source">
       Source: Robert J. Shiller, <em>Irrational Exuberance</em>, Princeton University Press.<br>
       Data: <a href="http://www.econ.yale.edu/~shiller/data.htm" target="_blank">econ.yale.edu/~shiller/data.htm</a>.
-      CAPE Yield = 1/CAPE = 10-year average real earnings ÷ real price. Returns are annualized real total returns (dividends reinvested, inflation-adjusted). Recession shading from NBER.
+      CAPE Yield = 1/CAPE = 10-year average real earnings Ã· real price. Returns are annualized real total returns (dividends reinvested, inflation-adjusted). Recession shading from NBER.
     </div>
     <div class="instructions"><kbd>drag</kbd> timeline to zoom &middot; <kbd>hover</kbd> for linked detail &middot; <kbd>slide</kbd> to explore valuations</div>
   </div>
@@ -189,11 +250,11 @@ const data = RAW.d.map(d => ({
 const recessions = RAW.r.map(r => [parseDate(r[0]), parseDate(r[1])]);
 
 const BUCKETS = [
-  { label:'0–2%', lo:0, hi:2, color:'#888888' },
-  { label:'2–4%', lo:2, hi:4, color:'#E84A5F' },
-  { label:'4–6%', lo:4, hi:6, color:'#E8964A' },
-  { label:'6–8%', lo:6, hi:8, color:'#E8C94A' },
-  { label:'8–10%', lo:8, hi:10, color:'#7AE89D' },
+  { label:'0â€“2%', lo:0, hi:2, color:'#888888' },
+  { label:'2â€“4%', lo:2, hi:4, color:'#E84A5F' },
+  { label:'4â€“6%', lo:4, hi:6, color:'#E8964A' },
+  { label:'6â€“8%', lo:6, hi:8, color:'#E8C94A' },
+  { label:'8â€“10%', lo:8, hi:10, color:'#7AE89D' },
   { label:'10%+', lo:10, hi:100, color:'#4AE89D' },
 ];
 function getBucket(cy) { if (cy == null) return null; return BUCKETS.find(b => cy >= b.lo && cy < b.hi) || null; }
@@ -227,7 +288,7 @@ function renderMetrics() {
     <div class="metric-card"><div class="metric-label">Latest CAPE Yield</div><div class="metric-value" style="color:var(--accent-cape)">${formatPct(lat.capeYield)}<span class="unit">%</span></div><div class="metric-subtext">${formatDate(lat.date)}</div></div>
     <div class="metric-card"><div class="metric-label">Period Mean</div><div class="metric-value">${formatPct(cyM)}<span class="unit">%</span></div><div class="metric-subtext">&nbsp;</div></div>
     <div class="metric-card"><div class="metric-label">Percentile</div><div class="metric-value">${Math.round(pctRank*100)}<span class="unit">th</span></div><div class="metric-subtext">${pctRank<0.3?'Cheap':''}${pctRank>=0.3&&pctRank<0.7?'Mid-range':''}${pctRank>=0.7?'Expensive':''} vs selected period</div></div>
-    <div class="metric-card"><div class="metric-label">Selected Span</div><div class="metric-value" style="font-size:1.1rem">${cyVals.length}<span class="unit"> months</span></div><div class="metric-subtext">${formatDate(cyFiltered[0].date)} – ${formatDate(lat.date)}</div></div>`;
+    <div class="metric-card"><div class="metric-label">Selected Span</div><div class="metric-value" style="font-size:1.1rem">${cyVals.length}<span class="unit"> months</span></div><div class="metric-subtext">${formatDate(cyFiltered[0].date)} â€“ ${formatDate(lat.date)}</div></div>`;
 }
 
 // ===== CONTROLS =====
@@ -241,7 +302,7 @@ function renderControls() {
 function renderBucketStatus(hl) {
   document.getElementById('bucket-status').innerHTML = bucketStats.map(b=>{
     const h=hl&&b.label===hl.label;
-    return `<div class="bucket-card ${h?'highlighted':''}"><div class="bucket-range">CAPE Yield ${b.label}</div><div class="bucket-stat-main" style="color:${h?b.color:'var(--text-secondary)'}">${b.mean!=null?formatDec(b.mean)+'%':'—'}</div><div class="bucket-stat-n">n = ${b.n} months</div></div>`;
+    return `<div class="bucket-card ${h?'highlighted':''}"><div class="bucket-range">CAPE Yield ${b.label}</div><div class="bucket-stat-main" style="color:${h?b.color:'var(--text-secondary)'}">${b.mean!=null?formatDec(b.mean)+'%':'â€”'}</div><div class="bucket-stat-n">n = ${b.n} months</div></div>`;
   }).join('');
 }
 
@@ -284,13 +345,13 @@ function renderMain() {
       Object.entries(SERIES).forEach(([k,s])=>{if(!s.active||d[s.field]==null)return;cd.append('circle').attr('cx',px).attr('cy',yScale(d[s.field])).attr('r',4).attr('fill',s.color).attr('stroke','var(--bg)').attr('stroke-width',2);});
       let rows='';
       if(d.capeYield!=null) rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:#5091A5"></span>CAPE Yield</span><span class="tooltip-val" style="color:#5091A5">${formatPct(d.capeYield)}%</span></div>`;
-      Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=d[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'—'}</span></div>`;});
+      Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=d[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'â€”'}</span></div>`;});
       if(d.fwdReturn!=null){const rc=d.fwdReturn>=0?'var(--accent-return-pos)':'var(--accent-return-neg)';rows+=`<div class="tooltip-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span class="tooltip-label"><span class="tooltip-dot" style="background:${rc}"></span>10yr Fwd Return</span><span class="tooltip-val" style="color:${rc}">${formatDec(d.fwdReturn)}%</span></div>`;}
       tt.innerHTML=`<div class="tooltip-date">${formatDate(d.date)}</div>${rows}`;tt.classList.add('visible');
       const chartRight=w;const pxRatio=px/chartRight;const cyVal=d.capeYield!=null?d.capeYield:0;const yDom=yScale.domain();const yRatio=(cyVal-yDom[0])/(yDom[1]-yDom[0]);
       let tx,ty;
       if(pxRatio>0.55&&yRatio>0.55){
-        // Point is in top-right quadrant — place tooltip in top-left of chart
+        // Point is in top-right quadrant â€” place tooltip in top-left of chart
         tx=margin.left+12;ty=40;
       } else {
         tx=px+margin.left+16;if(tx+250>mainEl.clientWidth-10)tx=px+margin.left-266;
@@ -317,7 +378,7 @@ function updateMainHighlight(datum) {
   Object.entries(SERIES).forEach(([k,s])=>{if(!s.active||datum[s.field]==null)return;cd.append('circle').attr('cx',px).attr('cy',yScale(datum[s.field])).attr('r',4).attr('fill',s.color).attr('stroke','var(--bg)').attr('stroke-width',2);});
   let rows='';
   if(datum.capeYield!=null) rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:#5091A5"></span>CAPE Yield</span><span class="tooltip-val" style="color:#5091A5">${formatPct(datum.capeYield)}%</span></div>`;
-  Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=datum[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'—'}</span></div>`;});
+  Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=datum[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'â€”'}</span></div>`;});
   if(datum.fwdReturn!=null){const rc=datum.fwdReturn>=0?'var(--accent-return-pos)':'var(--accent-return-neg)';rows+=`<div class="tooltip-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span class="tooltip-label"><span class="tooltip-dot" style="background:${rc}"></span>10yr Fwd Return</span><span class="tooltip-val" style="color:${rc}">${formatDec(datum.fwdReturn)}%</span></div>`;}
   tt.innerHTML=`<div class="tooltip-date">${formatDate(datum.date)}</div>${rows}`;tt.classList.add('visible');
   tt.style.left=(px+margin.left+16)+'px';tt.style.top='40px';
@@ -346,7 +407,7 @@ function renderReturnChart() {
   BUCKETS.forEach(b=>{const x0=xS(Math.max(b.lo,0)),x1=xS(Math.min(b.hi,xS.domain()[1]));if(x1>x0){g.append('rect').attr('x',x0).attr('width',x1-x0).attr('y',0).attr('height',h).attr('fill',b.color).attr('opacity',0.04);g.append('text').attr('x',(x0+x1)/2).attr('y',-8).attr('text-anchor','middle').attr('font-family','JetBrains Mono,monospace').attr('font-size','9px').attr('fill',b.color).attr('opacity',0.6).text(b.label);}});
   g.selectAll('.sd').data(sd).join('circle').attr('class','scatter-dot').attr('cx',d=>xS(d.capeYield)).attr('cy',d=>yS(d.fwdReturn)).attr('r',2.5).attr('fill',d=>{const b=getBucket(d.capeYield);return b?b.color:'#888';}).attr('opacity',0.35);
 
-  // Labelled landmark dots — notable years that anchor the data to memory
+  // Labelled landmark dots â€” notable years that anchor the data to memory
   const landmarks = [
     {y:1881,m:1,label:'1881'},{y:1901,m:1,label:'1901'},{y:1907,m:10,label:'1907'},
     {y:1921,m:6,label:'1921'},{y:1929,m:9,label:'1929'},{y:1932,m:6,label:'1932'},
@@ -363,7 +424,7 @@ function renderReturnChart() {
     if (!pt) return;
     const px = xS(pt.capeYield), py = yS(pt.fwdReturn);
     g.append('circle').attr('cx',px).attr('cy',py).attr('r',4.5).attr('fill','none').attr('stroke','rgba(15,38,64,0.5)').attr('stroke-width',1.2);
-    // Nudge label to avoid overlap — alternate above/below
+    // Nudge label to avoid overlap â€” alternate above/below
     const above = pt.fwdReturn > d3.median(sd, d=>d.fwdReturn);
     g.append('text').attr('x',px).attr('y', above ? py - 8 : py + 13).attr('text-anchor','middle')
       .attr('font-family','JetBrains Mono,monospace').attr('font-size','8px').attr('fill','rgba(15,38,64,0.5)').text(lm.label);
@@ -625,7 +686,7 @@ function renderReratingChart() {
       if (showRating) hlG.append('circle').attr('cx',xS(closest.cy)).attr('cy',yS(closest.mc)).attr('r',6).attr('fill','none').attr('stroke','#0F2640').attr('stroke-width',2);
       if (showFundamental) hlG.append('circle').attr('cx',xS(closest.cy)).attr('cy',yS(closest.fr)).attr('r',5).attr('fill','none').attr('stroke',FUNDAMENTAL_COLOR).attr('stroke-width',1.5).attr('stroke-dasharray','3,2');
 
-      let ttRows = `<div style="color:var(--text-muted);margin-bottom:4px">${formatDate(closest.date)} · Yield ${formatPct(closest.cy)}%</div>`;
+      let ttRows = `<div style="color:var(--text-muted);margin-bottom:4px">${formatDate(closest.date)} Â· Yield ${formatPct(closest.cy)}%</div>`;
       if (showRating) {
         const mcCol = closest.mc < 0 ? MC_NEG_COLOR : MC_POS_COLOR;
         const mcLbl = closest.mc < 0 ? 'De-rating' : 'Re-rating';
@@ -676,12 +737,341 @@ function updateReratingHighlight(datum) {
   if (RERATING_LAYERS.fundamental.active) hlG.append('circle').attr('cx', xS(pt.cy)).attr('cy', yS(pt.fr)).attr('r', 5).attr('fill', 'none').attr('stroke', FUNDAMENTAL_COLOR).attr('stroke-width', 1.5).attr('stroke-dasharray', '3,2');
 }
 
+
+
+// ===== CHART 4: STACKED TILE HISTOGRAM =====
+const fmtMY = d3.timeFormat('%b %Y');
+const fmtYr = d3.timeFormat('%Y');
+const fmtShort = d3.timeFormat("%b '%y");
+
+function renderVintageChart() {
+  const el = document.getElementById('vintage-chart');
+  el.innerHTML = '';
+
+  const all = data.filter(d => d.capeYield != null && d.fwdReturn != null)
+    .map(d => ({...d}))
+    .sort((a, b) => a.date - b.date);
+  if (!all.length) return;
+
+  const ylo = hYield - hWindow, yhi = hYield + hWindow;
+
+  // Build 2% return buckets
+  const bucketW = 2;
+  const minBucket = Math.floor(d3.min(all, d => d.fwdReturn) / bucketW) * bucketW;
+  const maxBucket = Math.floor(d3.max(all, d => d.fwdReturn) / bucketW) * bucketW;
+  const bucketKeys = [];
+  for (let b = minBucket; b <= maxBucket; b += bucketW) bucketKeys.push(b);
+
+  // Assign each month to a bucket and build stacks
+  const stacks = {};
+  bucketKeys.forEach(k => stacks[k] = []);
+  all.forEach(d => {
+    const b = Math.floor(d.fwdReturn / bucketW) * bucketW;
+    if (stacks[b]) stacks[b].push(d);
+  });
+
+  // Cell sizing
+  const cellW = 56, cellH = 16, cellPad = 1;
+  const marginLeft = 12, marginRight = 12, marginTop = 28, marginBottom = 52;
+  const colGap = 3;
+
+  const nCols = bucketKeys.length;
+  const totalW = marginLeft + nCols * (cellW + colGap) - colGap + marginRight;
+  const maxStack = d3.max(bucketKeys, k => stacks[k].length);
+  const totalH = marginTop + maxStack * (cellH + cellPad) + marginBottom;
+
+  const width = Math.max(totalW, el.clientWidth - 16);
+  const xOffset = Math.max(0, (width - totalW) / 2); // centre if container wider
+
+  const svg = d3.select(el).append('svg')
+    .attr('width', width).attr('height', totalH);
+
+  // Summary annotation
+  const matches = all.filter(d => d.capeYield >= ylo && d.capeYield < yhi);
+  const median = matches.length ? d3.median(matches, d => d.fwdReturn) : 0;
+  const mean = matches.length ? d3.mean(matches, d => d.fwdReturn) : 0;
+  svg.append('text').attr('x', width / 2).attr('y', 16).attr('text-anchor', 'middle')
+    .attr('font-family', 'JetBrains Mono, monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)')
+    .text(matches.length
+      ? `${matches.length} of ${all.length} months highlighted \u00b7 Median: ${formatDec(median)}% \u00b7 Mean: ${formatDec(mean)}%`
+      : 'No months with known outcomes in this range');
+
+  // Draw columns bottom-up (like reference image)
+  bucketKeys.forEach((bk, ci) => {
+    const colX = xOffset + marginLeft + ci * (cellW + colGap);
+    const stack = stacks[bk];
+    // Sort stack: put highlighted months at bottom for visibility
+    stack.sort((a, b) => {
+      const aActive = a.capeYield >= ylo && a.capeYield < yhi ? 1 : 0;
+      const bActive = b.capeYield >= ylo && b.capeYield < yhi ? 1 : 0;
+      if (aActive !== bActive) return bActive - aActive; // active first (bottom)
+      return a.date - b.date;
+    });
+
+    stack.forEach((d, ri) => {
+      const cellY = totalH - marginBottom - (ri + 1) * (cellH + cellPad);
+      const active = d.capeYield >= ylo && d.capeYield < yhi;
+
+      // Cell background
+      const bkt = getBucket(d.capeYield);
+      const activeCol = d.fwdReturn < 0 ? '#E86A6A' : (bkt ? bkt.color : '#888');
+      const fillCol = active ? activeCol : 'rgba(255,255,255,0.06)';
+      const opacity = active ? 0.85 : 0.5;
+      const textCol = active ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.18)';
+
+      const g = svg.append('g').attr('class', 'vtile')
+        .attr('transform', `translate(${colX},${cellY})`);
+
+      g.append('rect')
+        .attr('width', cellW).attr('height', cellH)
+        .attr('rx', 2)
+        .attr('fill', fillCol).attr('opacity', opacity);
+
+      // Label: "Jan '29"
+      const yr = d.date.getFullYear();
+      const mo = d3.timeFormat('%b')(d.date);
+      g.append('text')
+        .attr('x', cellW / 2).attr('y', cellH / 2 + 1)
+        .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+        .attr('font-family', 'JetBrains Mono, monospace')
+        .attr('font-size', '7.5px').attr('font-weight', active ? '600' : '400')
+        .attr('fill', textCol)
+        .text(`${mo} '${String(yr).slice(2)}`);
+
+      // Store data ref for tooltip
+      g.datum(d);
+    });
+
+    // Bucket label at bottom
+    svg.append('text')
+      .attr('x', colX + cellW / 2)
+      .attr('y', totalH - marginBottom + 16)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('font-size', '8px')
+      .attr('fill', 'var(--text-muted)')
+      .text(`${bk}%`);
+    svg.append('text')
+      .attr('x', colX + cellW / 2)
+      .attr('y', totalH - marginBottom + 26)
+      .attr('text-anchor', 'middle')
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('font-size', '7px')
+      .attr('fill', 'var(--text-muted)')
+      .attr('opacity', 0.6)
+      .text(`to ${bk + bucketW}%`);
+  });
+
+  // Tooltip
+  const tt = document.createElement('div');
+  tt.style.cssText = 'position:absolute;background:rgba(12,14,18,0.95);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:0.6rem 0.8rem;font-size:0.78rem;z-index:50;opacity:0;transition:opacity 0.15s;pointer-events:none;white-space:nowrap;';
+  el.appendChild(tt);
+
+  svg.selectAll('.vtile').on('mouseover', function(ev, d) {
+    const g = d3.select(this);
+    g.select('rect').attr('stroke', '#fff').attr('stroke-width', 1.5).attr('opacity', 1);
+    const active = d.capeYield >= ylo && d.capeYield < yhi;
+    const col = d.fwdReturn < 0 ? '#E86A6A' : (getBucket(d.capeYield)?.color || '#888');
+    tt.innerHTML = `<div style="color:var(--text-muted);margin-bottom:4px">${fmtMY(d.date)}${active ? '' : ' <span style="opacity:0.5">(outside range)</span>'}</div><div style="font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:${col}">${formatDec(d.fwdReturn)}% p.a.</div><div style="color:var(--text-muted);margin-top:2px">CAPE Yield: ${formatPct(d.capeYield)}%</div>`;
+    tt.style.opacity = '1';
+    const box = el.getBoundingClientRect();
+    const ttW = tt.offsetWidth || 160;
+    let left = ev.clientX - box.left + 12;
+    if (left + ttW > box.width - 8) left = ev.clientX - box.left - ttW - 12;
+    let top = ev.clientY - box.top - 40;
+    if (top < 4) top = ev.clientY - box.top + 20;
+    tt.style.left = left + 'px';
+    tt.style.top = top + 'px';
+  }).on('mouseleave', function(ev, d) {
+    const active = d.capeYield >= ylo && d.capeYield < yhi;
+    const bkt = getBucket(d.capeYield);
+    const activeCol = d.fwdReturn < 0 ? '#E86A6A' : (bkt ? bkt.color : '#888');
+    d3.select(this).select('rect')
+      .attr('fill', active ? activeCol : 'rgba(255,255,255,0.06)')
+      .attr('opacity', active ? 0.85 : 0.5)
+      .attr('stroke', 'none');
+    tt.style.opacity = '0';
+  });
+
+  // Scroll to bottom so the base of the histogram is visible
+  el.scrollTop = el.scrollHeight;
+}
+// ===== CHART 5: TIME TAMES UNCERTAINTY (HORIZON) =====
+let hYield = 5.0;
+let hWindow = 1.0;
+
+function renderHorizonControls() {
+  const el = document.getElementById('horizon-controls');
+  const lo = hYield - hWindow, hi = hYield + hWindow;
+  const n = HORIZON ? HORIZON.filter(d => d.cy >= lo && d.cy < hi).length : 0;
+
+  el.innerHTML = `
+    <div class="slider-group">
+      <div class="slider-label">Starting CAPE Yield</div>
+      <div class="slider-row">
+        <input type="range" id="yield-slider" min="2" max="14" step="0.25" value="${hYield}">
+        <div class="slider-value" id="yield-val">${formatPct(hYield)}%</div>
+      </div>
+    </div>
+    <div class="slider-group">
+      <div class="slider-label">Window (\u00b1)</div>
+      <div class="slider-row">
+        <input type="range" id="window-slider" min="0.25" max="2" step="0.25" value="${hWindow}">
+        <div class="slider-value" id="window-val">\u00b1 ${formatPct(hWindow)}%</div>
+      </div>
+    </div>
+    <div class="horizon-summary">
+      Matching: <span class="hs-n">${n} months</span><br>
+      Range: ${formatPct(lo)}% \u2013 ${formatPct(hi)}%
+    </div>`;
+
+  document.getElementById('yield-slider').addEventListener('input', function() {
+    hYield = parseFloat(this.value);
+    document.getElementById('yield-val').textContent = formatPct(hYield) + '%';
+    renderHorizonControls();
+    renderHorizonChart();
+    renderMain();
+    renderReturnChart();
+    renderVintageChart();
+  });
+  document.getElementById('window-slider').addEventListener('input', function() {
+    hWindow = parseFloat(this.value);
+    document.getElementById('window-val').textContent = '\u00b1 ' + formatPct(hWindow) + '%';
+    renderHorizonControls();
+    renderHorizonChart();
+    renderMain();
+    renderReturnChart();
+    renderVintageChart();
+  });
+}
+
+function renderHorizonChart() {
+  if (!HORIZON) return;
+  const hEl = document.getElementById('horizon-chart');
+  const width = hEl.clientWidth - 16;
+  const hMargin = { top: 30, right: 30, bottom: 45, left: 52 };
+  const hHeight = 400;
+  const w = width - hMargin.left - hMargin.right, h = hHeight - hMargin.top - hMargin.bottom;
+
+  const lo = hYield - hWindow, hi = hYield + hWindow;
+  const matches = HORIZON.filter(d => d.cy >= lo && d.cy < hi);
+
+  d3.select('#horizon-chart svg').remove();
+  const svg = d3.select('#horizon-chart').append('svg').attr('width', width).attr('height', hHeight);
+  const g = svg.append('g').attr('transform', `translate(${hMargin.left},${hMargin.top})`);
+
+  const horizons = [];
+  for (let yr = 1; yr <= 10; yr++) {
+    const vals = matches.map(d => d.f[yr - 1]).filter(v => v != null).sort((a, b) => a - b);
+    if (vals.length < 3) { horizons.push(null); continue; }
+    horizons.push({
+      yr, n: vals.length,
+      min: d3.min(vals), max: d3.max(vals),
+      p10: d3.quantile(vals, 0.1), p25: d3.quantile(vals, 0.25),
+      median: d3.median(vals), mean: d3.mean(vals),
+      p75: d3.quantile(vals, 0.75), p90: d3.quantile(vals, 0.9),
+    });
+  }
+
+  const xScale = d3.scaleBand().domain([1,2,3,4,5,6,7,8,9,10]).range([0, w]).padding(0.35);
+
+  const allVals = horizons.filter(h => h).flatMap(h => [h.min, h.max]);
+  const yAbs = Math.max(Math.abs(d3.min(allVals) || 0), Math.abs(d3.max(allVals) || 0)) * 1.1;
+  const yScale = d3.scaleLinear().domain([-yAbs, yAbs]).range([h, 0]).nice();
+
+  yScale.ticks(8).forEach(t => g.append('line').attr('class', 'grid-line').attr('x1', 0).attr('x2', w).attr('y1', yScale(t)).attr('y2', yScale(t)));
+  g.append('line').attr('x1', 0).attr('x2', w).attr('y1', yScale(0)).attr('y2', yScale(0))
+    .attr('stroke', 'rgba(255,255,255,0.2)').attr('stroke-width', 1);
+
+  const bw = xScale.bandwidth();
+  const tt = document.getElementById('h-tooltip');
+
+  horizons.forEach(hz => {
+    if (!hz) return;
+    const cx = xScale(hz.yr) + bw / 2;
+
+    g.append('line').attr('x1', cx).attr('x2', cx)
+      .attr('y1', yScale(hz.p90)).attr('y2', yScale(hz.p10))
+      .attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1.5).attr('opacity', 0.4);
+
+    [hz.p10, hz.p90].forEach(v => {
+      g.append('line').attr('x1', cx - 6).attr('x2', cx + 6)
+        .attr('y1', yScale(v)).attr('y2', yScale(v))
+        .attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1.5).attr('opacity', 0.4);
+    });
+
+    const boxTop = yScale(hz.p75), boxBot = yScale(hz.p25);
+    g.append('rect')
+      .attr('x', xScale(hz.yr)).attr('width', bw)
+      .attr('y', boxTop).attr('height', boxBot - boxTop)
+      .attr('fill', 'var(--accent-cape)').attr('opacity', 0.15)
+      .attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1).attr('stroke-opacity', 0.5)
+      .attr('rx', 3);
+
+    g.append('line')
+      .attr('x1', xScale(hz.yr) + 2).attr('x2', xScale(hz.yr) + bw - 2)
+      .attr('y1', yScale(hz.median)).attr('y2', yScale(hz.median))
+      .attr('stroke', '#fff').attr('stroke-width', 2.5).attr('stroke-linecap', 'round');
+
+    g.append('circle')
+      .attr('cx', cx).attr('cy', yScale(hz.mean)).attr('r', 4)
+      .attr('fill', 'var(--accent-cape)').attr('stroke', 'var(--bg)').attr('stroke-width', 1.5);
+
+    g.append('rect')
+      .attr('x', xScale(hz.yr) - 2).attr('width', bw + 4)
+      .attr('y', 0).attr('height', h)
+      .attr('fill', 'transparent').attr('cursor', 'pointer')
+      .on('mouseenter', function() {
+        const mc = hz.median >= 0 ? 'var(--accent-return-pos)' : 'var(--accent-return-neg)';
+        tt.innerHTML = `
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem">${hz.yr}-Year Holding Period</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:500;color:${mc};margin-bottom:0.3rem">Median: ${formatDec(hz.median)}%</div>
+          <div style="font-size:0.75rem;color:var(--text-secondary);line-height:1.6">
+            Mean: ${formatDec(hz.mean)}%<br>
+            IQR: ${formatDec(hz.p25)}% to ${formatDec(hz.p75)}%<br>
+            90% range: ${formatDec(hz.p10)}% to ${formatDec(hz.p90)}%<br>
+            Full range: ${formatDec(hz.min)}% to ${formatDec(hz.max)}%<br>
+            <span style="color:var(--text-muted)">n = ${hz.n}</span>
+          </div>`;
+        tt.classList.add('visible');
+        const rect = hEl.getBoundingClientRect();
+        let tx = xScale(hz.yr) + hMargin.left + bw + 12;
+        if (tx + 200 > rect.width) tx = xScale(hz.yr) + hMargin.left - 200;
+        tt.style.left = tx + 'px';
+        tt.style.top = '30px';
+      })
+      .on('mouseleave', function() { tt.classList.remove('visible'); });
+  });
+
+  g.append('g').attr('class', 'axis-x').attr('transform', `translate(0,${h})`)
+    .call(d3.axisBottom(xScale).tickSize(0).tickPadding(10).tickFormat(d => d + 'yr'))
+    .selectAll('text').style('fill', 'var(--text-secondary)').style('font-size', '12px');
+
+  g.append('g').attr('class', 'axis-y-left')
+    .call(d3.axisLeft(yScale).ticks(8).tickSize(0).tickPadding(8).tickFormat(d => d + '%'))
+    .selectAll('text').style('fill', 'var(--text-secondary)');
+
+  g.append('text').attr('class', 'axis-label').attr('x', w / 2).attr('y', h + 38).attr('text-anchor', 'middle')
+    .style('fill', 'var(--text-muted)').text('HOLDING PERIOD');
+  g.append('text').attr('class', 'axis-label').attr('transform', 'rotate(-90)').attr('x', -h / 2).attr('y', -40).attr('text-anchor', 'middle')
+    .style('fill', 'var(--text-muted)').text('ANNUALIZED REAL RETURN');
+
+  const lg = g.append('g').attr('transform', `translate(${w - 170}, 4)`);
+  lg.append('rect').attr('width', 14).attr('height', 10).attr('fill', 'var(--accent-cape)').attr('opacity', 0.15).attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1).attr('stroke-opacity', 0.5).attr('rx', 2);
+  lg.append('text').attr('x', 20).attr('y', 9).attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('25th\u201375th percentile');
+  lg.append('line').attr('x1', 0).attr('x2', 14).attr('y1', 22).attr('y2', 22).attr('stroke', '#fff').attr('stroke-width', 2.5).attr('stroke-linecap', 'round');
+  lg.append('text').attr('x', 20).attr('y', 26).attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('Median');
+  lg.append('circle').attr('cx', 7).attr('cy', 38).attr('r', 4).attr('fill', 'var(--accent-cape)');
+  lg.append('text').attr('x', 20).attr('y', 42).attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('Mean');
+  lg.append('line').attr('x1', 1).attr('x2', 13).attr('y1', 54).attr('y2', 54).attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1.5).attr('opacity', 0.4);
+  lg.append('text').attr('x', 20).attr('y', 58).attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('10th\u201390th percentile');
+}
+
 // ===== INIT =====
 renderMetrics(); renderControls(); renderBucketStatus(null); renderReturnChart(); renderBrush();
-// renderVintageChart(); // moved to charts_3_and_5.html
-// renderHorizonControls(); renderHorizonChart(); // moved to charts_3_and_5.html
+renderVintageChart(); renderHorizonControls(); renderHorizonChart();
 renderReratingToggles(); renderReratingChart();
-let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { renderMain(); renderBrush(); renderReturnChart(); renderReratingChart(); }, 150); });
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { renderMain(); renderBrush(); renderReturnChart(); renderVintageChart(); renderHorizonChart(); renderReratingChart(); }, 150); });
 })();
 </script>
 </body>
