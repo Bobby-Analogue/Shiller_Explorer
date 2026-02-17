@@ -202,9 +202,9 @@ By contrast, returns driven by underlying fundamentals tend to be more stable ov
   <div class="horizon-controls" id="horizon-controls"></div>
   <div class="vintage-chart-container" id="vintage-chart"></div>
 
-  <!-- Chart 5: Time Tames Uncertainty -->
-  <div class="section-divider"><h2>Time Tames Uncertainty</h2><div class="line"></div></div>
-  <p class="section-subtitle">Same starting valuation, different holding periods. Over one year, outcomes vary wildly. Over longer periods the range narrows as returns are increasingly shaped by fundamentals. Time helps convert uncertainty into probability.</p>
+  <!-- Chart 5: How Confident Can We Be? -->
+  <div class="section-divider"><h2>How Confident Can We Be?</h2><div class="line"></div></div>
+  <p class="section-subtitle">Using the same valuation from the sliders above, this chart shows how outcomes change across different holding periods. One-year results vary widely, while over longer periods the range narrows as returns are increasingly shaped by fundamentals. Time helps convert uncertainty into probability.</p>
   <div class="horizon-chart-container" id="horizon-chart"><div class="h-tooltip" id="h-tooltip"></div></div>
 
   <div class="chart-footer">
@@ -768,7 +768,7 @@ function renderVintageChart() {
 
   // Cell sizing: 15px tall, 5px wide, with visible gaps
   const cellW = 5, cellH = 15, cellGap = 1;
-  const marginLeft = 80, marginRight = 16, marginTop = 28, marginBottom = 20;
+  const marginLeft = 100, marginRight = 16, marginTop = 28, marginBottom = 20;
   const rowGap = 3;
 
   const nRows = bucketKeys.length;
