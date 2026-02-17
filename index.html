@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shiller Market Explorer â€” Brickwood Asset Management</title>
+<title>Shiller Market Explorer — Brickwood Asset Management</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Bellefair&family=Montserrat:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -174,7 +174,7 @@ header .byline { font-size:0.75rem; color:var(--text-muted); margin-top:1.25rem;
 <div class="container">
   <header>
     <h1>The Importance of Valuation</h1>
-    <p class="subtitle">155 years of U.S. stock market valuations, measured by CAPE Yield â€” the cyclically adjusted real earnings per dollar invested.</p>
+    <p class="subtitle">155 years of U.S. stock market valuations, measured by CAPE Yield — the cyclically adjusted real earnings per dollar invested.</p>
     <p class="byline">Data: Prof. Robert J. Shiller, Yale University &mdash; Updated Monthly</p>
   </header>
 
@@ -197,8 +197,8 @@ By contrast, returns driven by underlying fundamentals tend to be more stable ov
   <div class="decomp-chart-container" id="rerating-chart"></div>
 
   <!-- Charts 4 & 5: Shared slider controls -->
-  <div class="section-divider"><h2>When Was It This Expensive?</h2><div class="line"></div></div>
-  <p class="section-subtitle">Every month since 1881 and its subsequent 10-year real return. Use the sliders to pick a starting valuation: matching months stay bright while the rest fade, so you can see exactly where your yield window sits in 155 years of history.</p>
+  <div class="section-divider"><h2>What Happened from Similar Valuations?</h2><div class="line"></div></div>
+  <p class="section-subtitle">Choose a starting valuation using the sliders. The matching months stay highlighted while others fade, letting you instantly track what happened over the following 10 years.</p>
   <div class="horizon-controls" id="horizon-controls"></div>
   <div class="vintage-chart-container" id="vintage-chart"></div>
 
@@ -211,7 +211,7 @@ By contrast, returns driven by underlying fundamentals tend to be more stable ov
     <div class="source">
       Source: Robert J. Shiller, <em>Irrational Exuberance</em>, Princeton University Press.<br>
       Data: <a href="http://www.econ.yale.edu/~shiller/data.htm" target="_blank">econ.yale.edu/~shiller/data.htm</a>.
-      CAPE Yield = 1/CAPE = 10-year average real earnings Ã· real price. Returns are annualized real total returns (dividends reinvested, inflation-adjusted). Recession shading from NBER.
+      CAPE Yield = 1/CAPE = 10-year average real earnings ÷ real price. Returns are annualized real total returns (dividends reinvested, inflation-adjusted). Recession shading from NBER.
     </div>
     <div class="instructions"><kbd>drag</kbd> timeline to zoom &middot; <kbd>hover</kbd> for linked detail &middot; <kbd>slide</kbd> to explore valuations</div>
   </div>
@@ -246,11 +246,11 @@ const data = RAW.d.map(d => ({
 const recessions = RAW.r.map(r => [parseDate(r[0]), parseDate(r[1])]);
 
 const BUCKETS = [
-  { label:'0â€“2%', lo:0, hi:2, color:'#888888' },
-  { label:'2â€“4%', lo:2, hi:4, color:'#E84A5F' },
-  { label:'4â€“6%', lo:4, hi:6, color:'#E8964A' },
-  { label:'6â€“8%', lo:6, hi:8, color:'#E8C94A' },
-  { label:'8â€“10%', lo:8, hi:10, color:'#7AE89D' },
+  { label:'0–2%', lo:0, hi:2, color:'#888888' },
+  { label:'2–4%', lo:2, hi:4, color:'#E84A5F' },
+  { label:'4–6%', lo:4, hi:6, color:'#E8964A' },
+  { label:'6–8%', lo:6, hi:8, color:'#E8C94A' },
+  { label:'8–10%', lo:8, hi:10, color:'#7AE89D' },
   { label:'10%+', lo:10, hi:100, color:'#4AE89D' },
 ];
 function getBucket(cy) { if (cy == null) return null; return BUCKETS.find(b => cy >= b.lo && cy < b.hi) || null; }
@@ -284,7 +284,7 @@ function renderMetrics() {
     <div class="metric-card"><div class="metric-label">Latest CAPE Yield</div><div class="metric-value" style="color:var(--accent-cape)">${formatPct(lat.capeYield)}<span class="unit">%</span></div><div class="metric-subtext">${formatDate(lat.date)}</div></div>
     <div class="metric-card"><div class="metric-label">Period Mean</div><div class="metric-value">${formatPct(cyM)}<span class="unit">%</span></div><div class="metric-subtext">&nbsp;</div></div>
     <div class="metric-card"><div class="metric-label">Percentile</div><div class="metric-value">${Math.round(pctRank*100)}<span class="unit">th</span></div><div class="metric-subtext">${pctRank<0.3?'Cheap':''}${pctRank>=0.3&&pctRank<0.7?'Mid-range':''}${pctRank>=0.7?'Expensive':''} vs selected period</div></div>
-    <div class="metric-card"><div class="metric-label">Selected Span</div><div class="metric-value" style="font-size:1.1rem">${cyVals.length}<span class="unit"> months</span></div><div class="metric-subtext">${formatDate(cyFiltered[0].date)} â€“ ${formatDate(lat.date)}</div></div>`;
+    <div class="metric-card"><div class="metric-label">Selected Span</div><div class="metric-value" style="font-size:1.1rem">${cyVals.length}<span class="unit"> months</span></div><div class="metric-subtext">${formatDate(cyFiltered[0].date)} – ${formatDate(lat.date)}</div></div>`;
 }
 
 // ===== CONTROLS =====
@@ -298,7 +298,7 @@ function renderControls() {
 function renderBucketStatus(hl) {
   document.getElementById('bucket-status').innerHTML = bucketStats.map(b=>{
     const h=hl&&b.label===hl.label;
-    return `<div class="bucket-card ${h?'highlighted':''}"><div class="bucket-range">CAPE Yield ${b.label}</div><div class="bucket-stat-main" style="color:${h?b.color:'var(--text-secondary)'}">${b.mean!=null?formatDec(b.mean)+'%':'â€”'}</div><div class="bucket-stat-n">n = ${b.n} months</div></div>`;
+    return `<div class="bucket-card ${h?'highlighted':''}"><div class="bucket-range">CAPE Yield ${b.label}</div><div class="bucket-stat-main" style="color:${h?b.color:'var(--text-secondary)'}">${b.mean!=null?formatDec(b.mean)+'%':'—'}</div><div class="bucket-stat-n">n = ${b.n} months</div></div>`;
   }).join('');
 }
 
@@ -341,13 +341,13 @@ function renderMain() {
       Object.entries(SERIES).forEach(([k,s])=>{if(!s.active||d[s.field]==null)return;cd.append('circle').attr('cx',px).attr('cy',yScale(d[s.field])).attr('r',4).attr('fill',s.color).attr('stroke','var(--bg)').attr('stroke-width',2);});
       let rows='';
       if(d.capeYield!=null) rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:#5091A5"></span>CAPE Yield</span><span class="tooltip-val" style="color:#5091A5">${formatPct(d.capeYield)}%</span></div>`;
-      Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=d[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'â€”'}</span></div>`;});
+      Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=d[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'—'}</span></div>`;});
       if(d.fwdReturn!=null){const rc=d.fwdReturn>=0?'var(--accent-return-pos)':'var(--accent-return-neg)';rows+=`<div class="tooltip-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span class="tooltip-label"><span class="tooltip-dot" style="background:${rc}"></span>10yr Fwd Return</span><span class="tooltip-val" style="color:${rc}">${formatDec(d.fwdReturn)}%</span></div>`;}
       tt.innerHTML=`<div class="tooltip-date">${formatDate(d.date)}</div>${rows}`;tt.classList.add('visible');
       const chartRight=w;const pxRatio=px/chartRight;const cyVal=d.capeYield!=null?d.capeYield:0;const yDom=yScale.domain();const yRatio=(cyVal-yDom[0])/(yDom[1]-yDom[0]);
       let tx,ty;
       if(pxRatio>0.55&&yRatio>0.55){
-        // Point is in top-right quadrant â€” place tooltip in top-left of chart
+        // Point is in top-right quadrant — place tooltip in top-left of chart
         tx=margin.left+12;ty=40;
       } else {
         tx=px+margin.left+16;if(tx+250>mainEl.clientWidth-10)tx=px+margin.left-266;
@@ -374,7 +374,7 @@ function updateMainHighlight(datum) {
   Object.entries(SERIES).forEach(([k,s])=>{if(!s.active||datum[s.field]==null)return;cd.append('circle').attr('cx',px).attr('cy',yScale(datum[s.field])).attr('r',4).attr('fill',s.color).attr('stroke','var(--bg)').attr('stroke-width',2);});
   let rows='';
   if(datum.capeYield!=null) rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:#5091A5"></span>CAPE Yield</span><span class="tooltip-val" style="color:#5091A5">${formatPct(datum.capeYield)}%</span></div>`;
-  Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=datum[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'â€”'}</span></div>`;});
+  Object.entries(SERIES).forEach(([k,s])=>{if(!s.active)return;const v=datum[s.field];rows+=`<div class="tooltip-row"><span class="tooltip-label"><span class="tooltip-dot" style="background:${s.color}"></span>${s.label}</span><span class="tooltip-val" style="color:${s.color}">${v!=null?formatPct(v)+'%':'—'}</span></div>`;});
   if(datum.fwdReturn!=null){const rc=datum.fwdReturn>=0?'var(--accent-return-pos)':'var(--accent-return-neg)';rows+=`<div class="tooltip-row" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span class="tooltip-label"><span class="tooltip-dot" style="background:${rc}"></span>10yr Fwd Return</span><span class="tooltip-val" style="color:${rc}">${formatDec(datum.fwdReturn)}%</span></div>`;}
   tt.innerHTML=`<div class="tooltip-date">${formatDate(datum.date)}</div>${rows}`;tt.classList.add('visible');
   tt.style.left=(px+margin.left+16)+'px';tt.style.top='40px';
@@ -403,7 +403,7 @@ function renderReturnChart() {
   BUCKETS.forEach(b=>{const x0=xS(Math.max(b.lo,0)),x1=xS(Math.min(b.hi,xS.domain()[1]));if(x1>x0){g.append('rect').attr('x',x0).attr('width',x1-x0).attr('y',0).attr('height',h).attr('fill',b.color).attr('opacity',0.04);g.append('text').attr('x',(x0+x1)/2).attr('y',-8).attr('text-anchor','middle').attr('font-family','JetBrains Mono,monospace').attr('font-size','9px').attr('fill',b.color).attr('opacity',0.6).text(b.label);}});
   g.selectAll('.sd').data(sd).join('circle').attr('class','scatter-dot').attr('cx',d=>xS(d.capeYield)).attr('cy',d=>yS(d.fwdReturn)).attr('r',2.5).attr('fill',d=>{const b=getBucket(d.capeYield);return b?b.color:'#888';}).attr('opacity',0.35);
 
-  // Labelled landmark dots â€” notable years that anchor the data to memory
+  // Labelled landmark dots — notable years that anchor the data to memory
   const landmarks = [
     {y:1881,m:1,label:'1881'},{y:1901,m:1,label:'1901'},{y:1907,m:10,label:'1907'},
     {y:1921,m:6,label:'1921'},{y:1929,m:9,label:'1929'},{y:1932,m:6,label:'1932'},
@@ -420,7 +420,7 @@ function renderReturnChart() {
     if (!pt) return;
     const px = xS(pt.capeYield), py = yS(pt.fwdReturn);
     g.append('circle').attr('cx',px).attr('cy',py).attr('r',4.5).attr('fill','none').attr('stroke','rgba(15,38,64,0.5)').attr('stroke-width',1.2);
-    // Nudge label to avoid overlap â€” alternate above/below
+    // Nudge label to avoid overlap — alternate above/below
     const above = pt.fwdReturn > d3.median(sd, d=>d.fwdReturn);
     g.append('text').attr('x',px).attr('y', above ? py - 8 : py + 13).attr('text-anchor','middle')
       .attr('font-family','JetBrains Mono,monospace').attr('font-size','8px').attr('fill','rgba(15,38,64,0.5)').text(lm.label);
@@ -429,7 +429,7 @@ function renderReturnChart() {
   g.append('g').attr('class','axis-x').attr('transform',`translate(0,${h})`).call(d3.axisBottom(xS).ticks(10).tickSize(0).tickPadding(8).tickFormat(d=>d+'%')).selectAll('text').style('fill','var(--text-muted)');
   g.append('g').attr('class','axis-y-left').call(d3.axisLeft(yS).ticks(8).tickSize(0).tickPadding(8).tickFormat(d=>d+'%')).selectAll('text').style('fill','var(--text-secondary)');
   g.append('text').attr('class','axis-label').attr('x',w/2).attr('y',h+34).attr('text-anchor','middle').style('fill','var(--text-muted)').text('STARTING CAPE YIELD');
-  g.append('text').attr('class','axis-label').attr('transform','rotate(-90)').attr('x',-h/2).attr('y',-40).attr('text-anchor','middle').style('fill','var(--text-muted)').text('10-YEAR ANNUALIZED REAL RETURN');
+  g.append('text').attr('class','axis-label').attr('transform','rotate(-90)').attr('x',-h/2).attr('y',-40).attr('text-anchor','middle').style('fill','var(--text-muted)').text('10-YEAR ANNUALISED REAL RETURN');
   returnEl._g=g;returnEl._xS=xS;returnEl._yS=yS;
 
   // Hover interaction on scatter: find nearest dot, highlight in both charts
@@ -645,7 +645,7 @@ function renderReratingChart() {
   g.append('g').attr('class','axis-x').attr('transform',`translate(0,${ih})`).call(d3.axisBottom(xS).ticks(8).tickSize(-ih).tickPadding(8).tickFormat(d => d + '%'));
   g.append('g').attr('class','axis-y-left').call(d3.axisLeft(yS).ticks(8).tickSize(0).tickPadding(8).tickFormat(d => d + '%'));
   g.append('text').attr('class','axis-label').attr('x', w/2).attr('y', ih+38).attr('text-anchor','middle').style('fill','var(--text-muted)').text('CAPE YIELD (STARTING VALUATION)');
-  g.append('text').attr('class','axis-label').attr('transform',`translate(-40,${ih/2}) rotate(-90)`).attr('text-anchor','middle').style('fill','var(--text-muted)').text('ANNUALISED % OVER 10 YEARS');
+  g.append('text').attr('class','axis-label').attr('transform',`translate(-40,${ih/2}) rotate(-90)`).attr('text-anchor','middle').style('fill','var(--text-muted)').text('10-YEAR ANNUALISED REAL RETURN');
 
   // Tooltip
   const tt = document.createElement('div');
@@ -682,7 +682,7 @@ function renderReratingChart() {
       if (showRating) hlG.append('circle').attr('cx',xS(closest.cy)).attr('cy',yS(closest.mc)).attr('r',6).attr('fill','none').attr('stroke','#0F2640').attr('stroke-width',2);
       if (showFundamental) hlG.append('circle').attr('cx',xS(closest.cy)).attr('cy',yS(closest.fr)).attr('r',5).attr('fill','none').attr('stroke',FUNDAMENTAL_COLOR).attr('stroke-width',1.5).attr('stroke-dasharray','3,2');
 
-      let ttRows = `<div style="color:var(--text-muted);margin-bottom:4px">${formatDate(closest.date)} Â· Yield ${formatPct(closest.cy)}%</div>`;
+      let ttRows = `<div style="color:var(--text-muted);margin-bottom:4px">${formatDate(closest.date)} · Yield ${formatPct(closest.cy)}%</div>`;
       if (showRating) {
         const mcCol = closest.mc < 0 ? MC_NEG_COLOR : MC_POS_COLOR;
         const mcLbl = closest.mc < 0 ? 'De-rating' : 'Re-rating';
@@ -736,6 +736,7 @@ function updateReratingHighlight(datum) {
 
 
 
+
 // ===== CHART 4: HORIZONTAL TILE HISTOGRAM =====
 const fmtMY = d3.timeFormat('%b %Y');
 const fmtYr = d3.timeFormat('%Y');
@@ -765,20 +766,25 @@ function renderVintageChart() {
     if (stacks[b]) stacks[b].push(d);
   });
 
-  // Cell sizing — small blocks, no text, visible gaps
-  const cellSize = 5, cellGap = 1;
-  const marginLeft = 70, marginRight = 16, marginTop = 24, marginBottom = 8;
-  const rowGap = 4;
+  // Cell sizing: 15px tall, 5px wide, with visible gaps
+  const cellW = 5, cellH = 15, cellGap = 1;
+  const marginLeft = 80, marginRight = 16, marginTop = 28, marginBottom = 20;
+  const rowGap = 3;
 
   const nRows = bucketKeys.length;
-  const maxStack = d3.max(bucketKeys, k => stacks[k].length);
-
   const containerW = el.clientWidth - 16;
-  const availW = containerW - marginLeft - marginRight;
-  const totalH = marginTop + nRows * (cellSize + rowGap) - rowGap + marginBottom;
+  const totalH = marginTop + nRows * (cellH + rowGap) - rowGap + marginBottom;
 
   const svg = d3.select(el).append('svg')
     .attr('width', containerW).attr('height', totalH);
+
+  // Y-axis label
+  svg.append('text')
+    .attr('class', 'axis-label')
+    .attr('transform', `translate(14, ${marginTop + (totalH - marginTop - marginBottom) / 2}) rotate(-90)`)
+    .attr('text-anchor', 'middle')
+    .style('fill', 'var(--text-muted)')
+    .text('10-YEAR ANNUALISED REAL RETURN');
 
   // Summary annotation
   const matches = all.filter(d => d.capeYield >= ylo && d.capeYield < yhi);
@@ -792,52 +798,57 @@ function renderVintageChart() {
       : 'No months with known outcomes in this range');
 
   // Draw rows: each row = a return bucket, cells grow left-to-right
+  // Active cells packed to the left (adjacent to y-axis), inactive after
   bucketKeys.forEach((bk, ri) => {
-    const rowY = marginTop + ri * (cellSize + rowGap);
+    const rowY = marginTop + ri * (cellH + rowGap);
     const stack = stacks[bk];
+
+    // Sort: active cells first (nearest to label), then inactive, each group chronological
+    const active = stack.filter(d => d.capeYield >= ylo && d.capeYield < yhi);
+    const inactive = stack.filter(d => !(d.capeYield >= ylo && d.capeYield < yhi));
+    active.sort((a, b) => a.date - b.date);
+    inactive.sort((a, b) => a.date - b.date);
+    const sorted = [...active, ...inactive];
 
     // Row label (return range)
     svg.append('text')
-      .attr('x', marginLeft - 8).attr('y', rowY + cellSize / 2 + 1)
+      .attr('x', marginLeft - 8).attr('y', rowY + cellH / 2 + 1)
       .attr('text-anchor', 'end').attr('dominant-baseline', 'middle')
       .attr('font-family', 'JetBrains Mono, monospace')
-      .attr('font-size', '8px')
+      .attr('font-size', '9px')
       .attr('fill', bk < 0 ? 'var(--accent-return-neg)' : 'var(--text-muted)')
       .text(`${bk >= 0 ? '+' : ''}${bk}% to ${bk + bucketW}%`);
 
-    // Sort: chronological within each bucket
-    stack.sort((a, b) => a.date - b.date);
-
-    stack.forEach((d, ci) => {
-      const cellX = marginLeft + ci * (cellSize + cellGap);
-      const active = d.capeYield >= ylo && d.capeYield < yhi;
+    sorted.forEach((d, ci) => {
+      const cellX = marginLeft + ci * (cellW + cellGap);
+      const isActive = d.capeYield >= ylo && d.capeYield < yhi;
 
       svg.append('rect')
         .attr('class', 'vtile')
         .attr('x', cellX).attr('y', rowY)
-        .attr('width', cellSize).attr('height', cellSize)
+        .attr('width', cellW).attr('height', cellH)
         .attr('rx', 1)
-        .attr('fill', active ? 'var(--teal)' : 'rgba(15,38,64,0.08)')
-        .attr('opacity', active ? 0.9 : 1)
+        .attr('fill', isActive ? 'var(--teal)' : 'rgba(15,38,64,0.08)')
+        .attr('opacity', isActive ? 0.9 : 1)
         .datum(d);
     });
   });
 
-  // Tooltip
+  // Tooltip (styled to match main chart tooltips)
   const tt = document.createElement('div');
   tt.style.cssText = 'position:absolute;background:rgba(255,255,255,0.97);border:1px solid rgba(15,38,64,0.12);border-radius:8px;padding:0.7rem 0.9rem;font-size:0.8rem;z-index:50;opacity:0;transition:opacity 0.15s;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(15,38,64,0.1);color:var(--text-primary);';
   el.appendChild(tt);
 
   svg.selectAll('.vtile')
     .on('mouseover', function(ev, d) {
-      const active = d.capeYield >= ylo && d.capeYield < yhi;
+      const isActive = d.capeYield >= ylo && d.capeYield < yhi;
       d3.select(this)
-        .attr('fill', active ? 'var(--dark-navy)' : 'var(--teal)')
+        .attr('fill', isActive ? 'var(--dark-navy)' : 'var(--teal)')
         .attr('opacity', 1)
         .attr('stroke', 'var(--dark-navy)').attr('stroke-width', 1);
 
       const col = d.fwdReturn < 0 ? 'var(--accent-return-neg)' : 'var(--teal)';
-      tt.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;padding-bottom:0.35rem;border-bottom:1px solid rgba(15,38,64,0.08)">${fmtMY(d.date)}${active ? '' : ' \u00b7 outside range'}</div><div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:500;color:${col}">${formatDec(d.fwdReturn)}% <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted)">p.a.</span></div><div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem">CAPE Yield: ${formatPct(d.capeYield)}%</div>`;
+      tt.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.4rem;padding-bottom:0.35rem;border-bottom:1px solid rgba(15,38,64,0.08)">${fmtMY(d.date)}${isActive ? '' : ' \u00b7 outside range'}</div><div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.25rem">CAPE Yield: ${formatPct(d.capeYield)}%</div><div style="font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:500;color:${col}">${formatDec(d.fwdReturn)}% <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted)">p.a. over 10 yrs</span></div>`;
       tt.style.opacity = '1';
 
       const box = el.getBoundingClientRect();
@@ -850,10 +861,10 @@ function renderVintageChart() {
       tt.style.top = top + 'px';
     })
     .on('mouseleave', function(ev, d) {
-      const active = d.capeYield >= ylo && d.capeYield < yhi;
+      const isActive = d.capeYield >= ylo && d.capeYield < yhi;
       d3.select(this)
-        .attr('fill', active ? 'var(--teal)' : 'rgba(15,38,64,0.08)')
-        .attr('opacity', active ? 0.9 : 1)
+        .attr('fill', isActive ? 'var(--teal)' : 'rgba(15,38,64,0.08)')
+        .attr('opacity', isActive ? 0.9 : 1)
         .attr('stroke', 'none');
       tt.style.opacity = '0';
     });
@@ -1016,7 +1027,7 @@ function renderHorizonChart() {
   g.append('text').attr('class', 'axis-label').attr('x', w / 2).attr('y', h + 38).attr('text-anchor', 'middle')
     .style('fill', 'var(--text-muted)').text('HOLDING PERIOD');
   g.append('text').attr('class', 'axis-label').attr('transform', 'rotate(-90)').attr('x', -h / 2).attr('y', -40).attr('text-anchor', 'middle')
-    .style('fill', 'var(--text-muted)').text('ANNUALIZED REAL RETURN');
+    .style('fill', 'var(--text-muted)').text('ANNUALISED REAL RETURN');
 
   const lg = g.append('g').attr('transform', `translate(${w - 170}, 4)`);
   lg.append('rect').attr('width', 14).attr('height', 10).attr('fill', 'var(--accent-cape)').attr('opacity', 0.15).attr('stroke', 'var(--accent-cape)').attr('stroke-width', 1).attr('stroke-opacity', 0.5).attr('rx', 2);
