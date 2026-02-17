@@ -954,14 +954,8 @@ function renderHorizonChart() {
     return;
   }
 
-  // Fixed y-axis: compute from ALL horizon data regardless of slider
-  const globalExtremes = [];
-  for (let yr = 0; yr < 10; yr++) {
-    const vals = HORIZON.map(d => d.f[yr]).filter(v => v != null);
-    globalExtremes.push(d3.min(vals), d3.max(vals));
-  }
-  const yAbs = Math.max(Math.abs(d3.min(globalExtremes)), Math.abs(d3.max(globalExtremes))) * 1.05;
-  const yScale = d3.scaleLinear().domain([-yAbs, yAbs]).range([h, 0]).nice();
+  // Fixed y-axis: ±75% regardless of data (extreme outliers may clip, that's fine)
+  const yScale = d3.scaleLinear().domain([-75, 75]).range([h, 0]);
 
   const xScale = d3.scaleLinear().domain([1, 10]).range([0, w]);
 
@@ -1079,26 +1073,29 @@ function renderHorizonChart() {
   g.append('text').attr('class', 'axis-label').attr('transform', 'rotate(-90)').attr('x', -h / 2).attr('y', -40).attr('text-anchor', 'middle')
     .style('fill', 'var(--text-muted)').text('ANNUALISED REAL RETURN');
 
-  // Legend
-  const lg = svg.append('g').attr('transform', `translate(${hMargin.left + 8}, ${hMargin.top + 6})`);
-  lg.append('line').attr('x1', 0).attr('x2', 16).attr('y1', 0).attr('y2', 0)
+  // Legend (top-right, larger)
+  const lg = svg.append('g').attr('transform', `translate(${width - hMargin.right - 180}, ${hMargin.top + 8})`);
+  const lfs = '11px';
+
+  lg.append('line').attr('x1', 0).attr('x2', 24).attr('y1', 0).attr('y2', 0)
     .attr('stroke', 'var(--teal)').attr('stroke-width', 2.5);
-  lg.append('circle').attr('cx', 8).attr('cy', 0).attr('r', 3)
-    .attr('fill', 'var(--teal)').attr('stroke', 'var(--bg-panel)').attr('stroke-width', 1);
-  lg.append('text').attr('x', 22).attr('y', 3.5)
-    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('Mean');
+  lg.append('circle').attr('cx', 12).attr('cy', 0).attr('r', 4)
+    .attr('fill', 'var(--teal)').attr('stroke', 'var(--bg-panel)').attr('stroke-width', 1.5);
+  lg.append('text').attr('x', 32).attr('y', 4)
+    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', lfs).attr('fill', 'var(--text-secondary)').text('Mean');
 
-  lg.append('rect').attr('x', 0).attr('y', 12).attr('width', 16).attr('height', 8)
-    .attr('fill', 'var(--teal)').attr('opacity', 0.15).attr('rx', 1);
-  lg.append('text').attr('x', 22).attr('y', 22)
-    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('25th\u201375th percentile');
+  lg.append('rect').attr('x', 0).attr('y', 16).attr('width', 24).attr('height', 12)
+    .attr('fill', 'var(--teal)').attr('opacity', 0.15).attr('rx', 2)
+    .attr('stroke', 'var(--teal)').attr('stroke-width', 1).attr('stroke-opacity', 0.5);
+  lg.append('text').attr('x', 32).attr('y', 27)
+    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', lfs).attr('fill', 'var(--text-secondary)').text('25th\u201375th pctl');
 
-  lg.append('rect').attr('x', 0).attr('y', 30).attr('width', 16).attr('height', 8)
-    .attr('fill', 'var(--teal)').attr('opacity', 0.06).attr('rx', 1);
-  lg.append('line').attr('x1', 0).attr('x2', 16).attr('y1', 34).attr('y2', 34)
+  lg.append('rect').attr('x', 0).attr('y', 38).attr('width', 24).attr('height', 12)
+    .attr('fill', 'var(--teal)').attr('opacity', 0.06).attr('rx', 2);
+  lg.append('line').attr('x1', 0).attr('x2', 24).attr('y1', 44).attr('y2', 44)
     .attr('stroke', 'var(--teal)').attr('stroke-width', 1).attr('opacity', 0.35).attr('stroke-dasharray', '4,3');
-  lg.append('text').attr('x', 22).attr('y', 40)
-    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', '9px').attr('fill', 'var(--text-muted)').text('Best / Worst');
+  lg.append('text').attr('x', 32).attr('y', 49)
+    .attr('font-family', 'JetBrains Mono,monospace').attr('font-size', lfs).attr('fill', 'var(--text-secondary)').text('Best / Worst');
 }
 
 // ===== INIT =====
